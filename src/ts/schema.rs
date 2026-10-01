@@ -8,11 +8,11 @@ use crate::ir::{Literal, Object, Schema, SchemaKind};
 impl<'a> Generator<'a> {
     /// `export type Foo = ...` for an entry in `components.schemas`.
     pub(super) fn named_schema(&self, raw: &str, schema: &Schema) -> Statement<'a> {
-        let name = self.names.schema(raw).expect("all schemas are named up front");
-        let docs = DocLines::default()
-            .tag("title", schema.meta.title.as_deref())
-            .meta(&schema.meta)
-            .done();
+        let name = self
+            .names
+            .schema(raw)
+            .expect("all schemas are named up front");
+        let docs = DocLines::schema(schema).done();
         self.export_type(name, self.schema(schema), docs)
     }
 
@@ -27,14 +27,14 @@ impl<'a> Generator<'a> {
             }
             SchemaKind::Boolean => b.boolean(),
             SchemaKind::Null => b.null(),
-            SchemaKind::Enum(values) => b.union(values.iter().map(|v| self.literal(v))),
-            SchemaKind::Array(items) => b.array(self.schema(items)),
+            SchemaKind::Enum { values } => b.union(values.iter().map(|v| self.literal(v))),
+            SchemaKind::Array { items } => b.array(self.schema(items)),
             SchemaKind::Object(object) => self.object(object),
-            SchemaKind::Union(members) => b.union(members.iter().map(|m| self.schema(m))),
-            SchemaKind::Intersection(members) => {
+            SchemaKind::Union { members } => b.union(members.iter().map(|m| self.schema(m))),
+            SchemaKind::Intersection { members } => {
                 b.intersection(members.iter().map(|m| self.schema(m)))
             }
-            SchemaKind::Ref(raw) => match self.names.schema(raw) {
+            SchemaKind::Ref { name } => match self.names.schema(name) {
                 Some(name) => b.reference(b.str(name)),
                 // Dangling ref: degrade rather than emit a name that doesn't exist.
                 None => b.unknown(),
@@ -59,12 +59,11 @@ impl<'a> Generator<'a> {
             let meta = &property.schema.meta;
             let member = b.property(
                 b.str(key),
-                b.annotation(self.schema(&property.schema)),
-                false,
+                self.schema(&property.schema),
                 !property.required,
                 self.config.readonly && meta.read_only,
             );
-            members = members.with(self.doc(member, DocLines::default().meta(meta).done()));
+            members = members.with(self.doc(member, DocLines::meta(meta).done()));
         }
         if let Some(additional) = object.additional.as_deref() {
             members = members.index_signature(self.index_signature(object, additional));
@@ -86,7 +85,11 @@ impl<'a> Generator<'a> {
             .values()
             .any(|p| !p.required)
             .then(|| b.undefined());
-        b.union(std::iter::once(self.schema(additional)).chain(properties).chain(optional))
+        b.union(
+            std::iter::once(self.schema(additional))
+                .chain(properties)
+                .chain(optional),
+        )
     }
 
     fn literal(&self, literal: &Literal) -> TSType<'a> {

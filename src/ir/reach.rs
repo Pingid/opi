@@ -9,47 +9,28 @@ impl Schema {
     /// Call `f` with the name of every schema this one references directly
     /// (not following the refs themselves).
     pub fn visit_refs<'s>(&'s self, f: &mut impl FnMut(&'s str)) {
-        match &self.kind {
-            SchemaKind::Ref(name) => f(name),
-            SchemaKind::Array(items) => items.visit_refs(f),
-            SchemaKind::Object(object) => {
-                for property in object.properties.values() {
-                    property.schema.visit_refs(f);
-                }
-                if let Some(additional) = &object.additional {
-                    additional.visit_refs(f);
-                }
-            }
-            SchemaKind::Union(members) | SchemaKind::Intersection(members) => {
-                for member in members {
-                    member.visit_refs(f);
-                }
-            }
-            SchemaKind::Unknown
-            | SchemaKind::Never
-            | SchemaKind::String { .. }
-            | SchemaKind::Number { .. }
-            | SchemaKind::Integer { .. }
-            | SchemaKind::Boolean
-            | SchemaKind::Null
-            | SchemaKind::Enum(_) => {}
+        if let SchemaKind::Ref { name } = &self.kind {
+            f(name);
+        }
+        for child in self.children() {
+            child.visit_refs(f);
         }
     }
 }
 
 impl Operation {
+    /// Every schema in the params, request bodies and responses.
+    pub fn schemas(&self) -> impl Iterator<Item = &Schema> {
+        let requests = self.requests.iter().filter_map(|r| r.body.as_ref());
+        let responses = self.responses.iter().filter_map(|r| r.body.as_ref());
+        let params = self.params.iter().map(|p| &p.schema);
+        params.chain(requests).chain(responses)
+    }
+
     /// Every schema the operation's params, body and responses reference.
     pub fn visit_refs<'s>(&'s self, f: &mut impl FnMut(&'s str)) {
-        let params = &self.params;
-        let all = params.path.iter().chain(&params.query).chain(&params.querystring);
-        for param in all.chain(&params.header).chain(&params.cookie) {
-            param.schema.visit_refs(f);
-        }
-        for content in self.body.iter().flat_map(|b| b.content.values()) {
-            content.schema.visit_refs(f);
-        }
-        for content in self.responses.iter().flat_map(|r| r.content.values()) {
-            content.schema.visit_refs(f);
+        for schema in self.schemas() {
+            schema.visit_refs(f);
         }
     }
 }

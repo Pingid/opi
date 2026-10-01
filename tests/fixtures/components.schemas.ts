@@ -2,58 +2,62 @@
 
 /** @description A reusable component */
 export type Component = {
-  type: 'component'
-  /** @description Server-assigned id */
-  readonly id?: string
-  component: Record<string, unknown>
-  tags?: string[] | null
-}
-export type Mixed = (string | 1 | -2 | null)[]
+	type: "component";
+	/** @description Server-assigned id */
+	readonly id?: string;
+	component: Record<string, unknown>;
+	tags?: string[] | null;
+};
+export type Mixed = (string | 1 | -2 | null)[];
 /** @summary List items */
 export type GetShopItems = {
-  method: 'GET'
-  path: '/shop/items'
-  request: {
-    body?: never
-    contentType?: never
-    params?: never
-    query?: {
-      limit?: number
-    }
-    headers?: never
-    cookies?: never
-  }
-  response: {
-    'application/json': {
-      /** @description The items */
-      200: Component[]
-    }
-  }
-}
+	method: "GET";
+	path: "/shop/items";
+	request: {
+		body?: never;
+		contentType?: never;
+		params?: never;
+		query?: {
+			limit?: number;
+		};
+		headers?: never;
+		cookies?: never;
+	};
+	response: {
+		/** @description The items */
+		status: 200;
+		contentType: "application/json";
+		body: Component[];
+	};
+};
 /** @deprecated */
 export type PostShopItems = {
-  method: 'POST'
-  path: '/shop/items'
-  request: {
-    body: Component
-    contentType: 'application/json'
-    params?: never
-    query?: never
-    headers?: never
-    cookies?: never
-  }
-  response: {
-    none: {
-      /** @description Created */
-      201: never
-    }
-  }
-}
-export interface Paths {
-  '/shop/items': {
-    /** @summary List items */
-    get: GetShopItems
-    /** @deprecated */
-    post: PostShopItems
-  }
-}
+	method: "POST";
+	path: "/shop/items";
+	request: {
+		body: Component;
+		contentType: "application/json";
+		params?: never;
+		query?: never;
+		headers?: never;
+		cookies?: never;
+	};
+	response: {
+		/** @description Created */
+		status: 201;
+		contentType: null;
+		body?: never;
+	};
+};
+export type Paths = {
+	/** @summary List items */
+	"GET /shop/items": {
+		request: GetShopItems["request"];
+		response: GetShopItems["response"];
+	};
+	/** @deprecated */
+	"POST /shop/items": {
+		request: PostShopItems["request"];
+		response: PostShopItems["response"];
+	};
+};

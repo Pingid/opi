@@ -23,10 +23,10 @@
   },
   "devDependencies": {
     "@pingid/lib": "github:Pingid/lib#build-75",
+    "opi": "github:Pingid/opi#build-3",
     "prettier": "^3.9.9",
     "typescript": "^7.0.2",
-    "vite-plus": "catalog:",
-    "opi": "github:Pingid/opi#build-3"
+    "vite-plus": "catalog:"
   },
   "prettier": {
     "printWidth": 120,

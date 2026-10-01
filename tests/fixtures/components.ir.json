@@ -1,0 +1,316 @@
+{
+  "version": 3,
+  "names": {
+    "Component": "Component",
+    "Error": "Error2"
+  },
+  "schemas": {
+    "Component": {
+      "kind": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "kind": {
+              "type": "enum",
+              "values": [
+                "component"
+              ]
+            },
+            "required": true
+          },
+          "id": {
+            "kind": {
+              "type": "string"
+            },
+            "description": "Server-assigned id",
+            "read_only": true,
+            "required": false
+          },
+          "component": {
+            "kind": {
+              "type": "object",
+              "properties": {},
+              "additional": {
+                "kind": {
+                  "type": "unknown"
+                }
+              }
+            },
+            "required": true
+          },
+          "tags": {
+            "kind": {
+              "type": "array",
+              "items": {
+                "kind": {
+                  "type": "string"
+                }
+              }
+            },
+            "nullable": true,
+            "required": false
+          }
+        }
+      },
+      "description": "A reusable component",
+      "ts": "{ type: \"component\"; readonly id?: string; component: Record<string, unknown>; tags?: string[] | null }"
+    },
+    "Error": {
+      "kind": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "kind": {
+              "type": "enum",
+              "values": [
+                "error"
+              ]
+            },
+            "required": true
+          },
+          "message": {
+            "kind": {
+              "type": "string"
+            },
+            "required": true
+          }
+        }
+      },
+      "ts": "{ type: \"error\"; message: string }"
+    }
+  },
+  "operations": [
+    {
+      "operation_id": "getComponent",
+      "method": "GET",
+      "path": "/components/{name}",
+      "summary": "Fetch a component",
+      "deprecated": false,
+      "tags": [
+        "components"
+      ],
+      "params": {
+        "path": [
+          {
+            "name": "name",
+            "required": true,
+            "deprecated": false,
+            "schema": {
+              "kind": {
+                "type": "string"
+              },
+              "ts": "string"
+            }
+          }
+        ]
+      },
+      "requests": [
+        {}
+      ],
+      "responses": [
+        {
+          "status": "200",
+          "content_type": "application/json",
+          "body": {
+            "kind": {
+              "type": "ref",
+              "name": "Component"
+            },
+            "ts": "Component"
+          },
+          "description": "The component"
+        },
+        {
+          "status": "401",
+          "content_type": "application/json",
+          "body": {
+            "kind": {
+              "type": "ref",
+              "name": "Error"
+            },
+            "ts": "Error2"
+          },
+          "description": "Missing or wrong token"
+        },
+        {
+          "status": "404",
+          "content_type": "application/json",
+          "body": {
+            "kind": {
+              "type": "ref",
+              "name": "Error"
+            },
+            "ts": "Error2"
+          },
+          "description": "No such component"
+        }
+      ]
+    },
+    {
+      "method": "PUT",
+      "path": "/components/{name}",
+      "deprecated": false,
+      "tags": [
+        "components",
+        "admin"
+      ],
+      "params": {
+        "path": [
+          {
+            "name": "name",
+            "required": true,
+            "deprecated": false,
+            "schema": {
+              "kind": {
+                "type": "string"
+              },
+              "ts": "string"
+            }
+          }
+        ],
+        "query": [
+          {
+            "name": "dry-run",
+            "required": false,
+            "deprecated": false,
+            "schema": {
+              "kind": {
+                "type": "boolean"
+              },
+              "ts": "boolean"
+            }
+          }
+        ],
+        "header": [
+          {
+            "name": "X-Request-Id",
+            "required": true,
+            "deprecated": false,
+            "schema": {
+              "kind": {
+                "type": "string"
+              },
+              "ts": "string"
+            }
+          }
+        ]
+      },
+      "requests": [
+        {
+          "content_type": "application/json",
+          "body": {
+            "kind": {
+              "type": "ref",
+              "name": "Component"
+            },
+            "ts": "Component"
+          }
+        },
+        {
+          "content_type": "application/octet-stream",
+          "body": {
+            "kind": {
+              "type": "string",
+              "format": "binary"
+            },
+            "ts": "Blob"
+          }
+        }
+      ],
+      "responses": [
+        {
+          "status": "204",
+          "description": "Saved"
+        },
+        {
+          "status": "default",
+          "content_type": "application/json",
+          "body": {
+            "kind": {
+              "type": "ref",
+              "name": "Error"
+            },
+            "ts": "Error2"
+          },
+          "description": "Unexpected error"
+        }
+      ]
+    },
+    {
+      "operation_id": "listItems",
+      "method": "GET",
+      "path": "/shop/items",
+      "summary": "List items",
+      "deprecated": false,
+      "tags": [
+        "shop"
+      ],
+      "params": {
+        "query": [
+          {
+            "name": "limit",
+            "required": false,
+            "deprecated": false,
+            "schema": {
+              "kind": {
+                "type": "integer"
+              },
+              "ts": "number"
+            }
+          }
+        ]
+      },
+      "requests": [
+        {}
+      ],
+      "responses": [
+        {
+          "status": "200",
+          "content_type": "application/json",
+          "body": {
+            "kind": {
+              "type": "array",
+              "items": {
+                "kind": {
+                  "type": "ref",
+                  "name": "Component"
+                }
+              }
+            },
+            "ts": "Component[]"
+          },
+          "description": "The items"
+        }
+      ]
+    },
+    {
+      "operation_id": "createItem",
+      "method": "POST",
+      "path": "/shop/items",
+      "deprecated": true,
+      "tags": [
+        "shop",
+        "admin"
+      ],
+      "params": {},
+      "requests": [
+        {
+          "content_type": "application/json",
+          "body": {
+            "kind": {
+              "type": "ref",
+              "name": "Component"
+            },
+            "ts": "Component"
+          }
+        }
+      ],
+      "responses": [
+        {
+          "status": "201",
+          "description": "Created"
+        }
+      ]
+    }
+  ]
+}

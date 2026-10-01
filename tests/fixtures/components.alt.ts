@@ -18,19 +18,22 @@ export type GetComponent = {
 		params: {
 			name: string;
 		};
+		query?: never;
 		headers?: never;
 		cookies?: never;
 	};
 	response: {
-		200: {
-			"application/json": Component;
-		};
-		401: {
-			"application/json": Error2;
-		};
-		404: {
-			"application/json": Error2;
-		};
+		status: 200;
+		contentType: "application/json";
+		body: Component;
+	} | {
+		status: 401;
+		contentType: "application/json";
+		body: Error2;
+	} | {
+		status: 404;
+		contentType: "application/json";
+		body: Error2;
 	};
 };
 export type PutComponentsByName = {
@@ -41,6 +44,8 @@ export type PutComponentsByName = {
 		contentType: "application/json";
 		params: {
 			name: string;
+		};
+		query?: {
 			"dry-run"?: boolean;
 		};
 		headers: {
@@ -52,6 +57,8 @@ export type PutComponentsByName = {
 		contentType: "application/octet-stream";
 		params: {
 			name: string;
+		};
+		query?: {
 			"dry-run"?: boolean;
 		};
 		headers: {
@@ -60,10 +67,13 @@ export type PutComponentsByName = {
 		cookies?: never;
 	};
 	response: {
-		204: {};
-		default: {
-			"application/json": Error2;
-		};
+		status: 204;
+		contentType: null;
+		body?: never;
+	} | {
+		status: "default";
+		contentType: "application/json";
+		body: Error2;
 	};
 };
 export type ListItems = {
@@ -72,16 +82,17 @@ export type ListItems = {
 	request: {
 		body?: never;
 		contentType?: never;
-		params?: {
+		params?: never;
+		query?: {
 			limit?: number;
 		};
 		headers?: never;
 		cookies?: never;
 	};
 	response: {
-		200: {
-			"application/json": Component[];
-		};
+		status: 200;
+		contentType: "application/json";
+		body: Component[];
 	};
 };
 export type CreateItem = {
@@ -91,16 +102,19 @@ export type CreateItem = {
 		body: Component;
 		contentType: "application/json";
 		params?: never;
+		query?: never;
 		headers?: never;
 		cookies?: never;
 	};
 	response: {
-		201: {};
+		status: 201;
+		contentType: null;
+		body?: never;
 	};
 };
-export interface Routes {
+export type Routes = {
 	"GET /components/{name}": GetComponent;
 	"PUT /components/{name}": PutComponentsByName;
 	"GET /shop/items": ListItems;
 	"POST /shop/items": CreateItem;
-}
+};

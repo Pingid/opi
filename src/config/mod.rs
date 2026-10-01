@@ -1,452 +1,277 @@
-//! Generator configuration, loadable from TOML. `build.rs` writes
-//! [`Config::default`] out as `config.toml` / `config.json`, plus the JSON
-//! Schema `schema.json`, so the doc comments here are also the config file's
-//! documentation. The serialisers live in `build/`.
+//! Generator configuration, loaded from YAML or JSON with serde. The doc
+//! comments here are also the config file's documentation: with the `facet`
+//! feature, the `reflect` tests write [`Config::default`] out as the commented
+//! `config.default.yaml`, plus JSON Schema and TypeScript types for it.
 //!
-//! `build.rs` compiles this module (plus [`crate::select`],
-//! [`crate::template`] and [`crate::case`]) on its own, so it can't use the
-//! IR or the backend. Code relating config to operations goes in
-//! `ir/matches.rs`.
-//!
-//! ```toml
-//! [filter]                       # which operations are generated at all
-//! exclude = { deprecated = true }
-//!
-//! [operation]                    # the per-operation type
-//! name = "{Method}{Path}"
-//!
-//! [[emit]]                       # aggregate types over operations
-//! name = "Paths"
-//! kind = "map"
-//! key = ["{path}", "{method}"]
+//! ```yaml
+//! filter: { deprecated: false }   # which operations are generated at all
+//! operation:
+//!   name: "{Method}{Path}"        # the per-operation type
+//! emit:                           # aggregate types over operations
+//!   - name: Paths
+//!     shape: { "{METHOD} {path}": { request: "{request}", response: "{response}" } }
 //! ```
 //!
 //! Every field is optional and falls back to [`Config::default`]. Lists and
-//! tables *replace* the default rather than merging into it, so a config with
-//! any `[[emit]]` entries only gets those.
-//!
-//! Deserialised with facet. Two quirks shape the types here:
-//! - A container `#[facet(default)]` only applies when the whole table is
-//!   missing; fields missing from a *partial* table get their type's
-//!   `Default`. So every field with a non-trivial default repeats it with a
-//!   field-level `#[facet(default = ..)]`.
-//! - Proxy conversion errors are discarded, so templates deserialise
-//!   leniently and report errors from [`Config::validate`].
+//! maps *replace* the default rather than merging into it, so a config with
+//! any `emit` entries only gets those. (serde gets that from the container
+//! `#[serde(default)]`; the field-level `facet(default)`s only mark the
+//! fields optional in the generated schema and TS types.)
 
-use std::path::Path;
+mod load;
+mod shape;
+#[cfg(test)]
+mod tests;
+mod validate;
 
-use anyhow::{bail, Context, Result};
-use facet::Facet;
 use indexmap::IndexMap;
+use serde::{Deserialize, Serialize};
 
-use crate::select::{List, Selector};
-use crate::template::Template;
+pub use shape::{Resolved, Root, Shape, Value};
 
-/// opi configuration: the built-in defaults, written out. Every key
-/// is optional; copy only what you want to change. Lists and tables replace
-/// the default rather than merging, so defining any `[[emit]]` drops the
-/// `Paths` one below.
+use crate::select::Where;
+use crate::template::{Template, Var};
+
+/// opi configuration: the built-in defaults, written out. Every key is
+/// optional; copy only what you want to change. Lists and maps replace the
+/// default rather than merging, so defining any `emit` drops the `Paths` one
+/// below.
 ///
-/// Templates (`name`, `key`, `value`): `{method}` `{path}` `{operationId}` `{tag}` `{type}`
-///   `{method}` -> get, `{Method}` -> Get, `{METHOD}` -> GET
-///   `{Path}` on "/components/{name}" -> ComponentsByName
-///   filters: `{tag|camel}`, `{operationId|pascal}`, `|lower`, `|upper`
+/// Templates (`name`s, `shape` keys and values): the operation's fields,
+/// `.` for its request's / response's.
+///   `{type_name}` `{id}` `{method}` `{path}` `{summary}` `{description}`
+///   `{deprecated}` `{tags}` `{request.content_type}` `{response.status}`
+///   `{response.content_type}`
+///   `{method}` -> get, `{Method}` -> Get, `{METHOD}` -> GET.
+///   `{Path}` on "/components/{name}" -> ComponentsByName.
+///   Filters: `{tags|camel}`, `{id|pascal}`, `|lower`, `|upper`.
+/// Some have several values (`tags`, the content types, `response.status`):
+/// a `shape` key using one is repeated per value, a name uses the first.
 ///
-/// Selectors (`[filter]`, `match`): fields are ANDed, a list ORs.
-///   method = "GET" | ["GET", "HEAD"]
-///   path = "/shop/**"        (* = within one segment, ** = any segments)
-///   tag = "shop", operation_id = "getItem", deprecated = true, has_body = false
-///   not = { ... }
-#[derive(Debug, Clone, PartialEq, Facet)]
-#[facet(default, deny_unknown_fields)]
+/// Selectors (`filter`, `where`): fields AND, lists OR, `any` ORs selectors,
+/// `not` negates one.
+///   method: [GET, HEAD]    path: "/shop/**" (* one segment, ** any)
+///   tag: shop    operation_id: "get*"    deprecated: false
+///   request: { content_type: application/json }    response: { status: 2xx }
+///   not: { ... }    any: [{ ... }, { ... }]
+///
+/// Shapes mirror the output: a map is an object type, a value a union.
+///   shape: { "{METHOD} {path}": "{type_name}" }    -> type A = { ... }
+///   shape: "{type_name}"                           -> type A = GetFoo | GetBar
+/// Values reference the generated types; a variable as the whole value is
+/// that part of the operation's type:
+///   "{type_name}" -> GetFoo    "{method}" -> GetFoo['method']
+///   "{request}" -> GetFoo['request']    "{request.body}" -> GetFoo['request']['body']
+///   "{response}"    "{response.status}"    "{response.body}"    ...
+///   { ref: "{response}", where: { content_type: application/json } }
+///     -> Extract<GetFoo['response'], { contentType: 'application/json' }>
+///   { ref: "{request}", pick: [body, query] }
+///     -> Pick<GetFoo['request'], 'body' | 'query'>
+///   any other template -> a string literal type ("{METHOD}" -> 'GET')
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+#[cfg_attr(
+    feature = "facet",
+    derive(facet::Facet),
+    facet(default, deny_unknown_fields)
+)]
+#[allow(rustdoc::broken_intra_doc_links)] // `GetFoo['request']['body']` reads as a link
 pub struct Config {
+    /// Path or URL of this file's JSON Schema, for editors. Ignored.
+    #[serde(rename = "$schema", skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(
+        feature = "facet",
+        facet(rename = "$schema", skip_serializing_if = Option::is_none)
+    )]
+    pub(crate) schema: Option<String>,
     /// Prepended verbatim to the output. `""` for none.
-    #[facet(default = Config::default().header)]
-    pub header: String,
+    #[cfg_attr(feature = "facet", facet(default = Config::default().header))]
+    pub(crate) header: String,
     /// Emit `/** @description ... */` comments.
-    #[facet(default = true)]
-    pub jsdoc: bool,
+    #[cfg_attr(feature = "facet", facet(default = true))]
+    pub(crate) jsdoc: bool,
     /// Emit `readonly` for `readOnly: true` properties.
-    #[facet(default = true)]
-    pub readonly: bool,
-    /// `'GET'` instead of `"GET"`.
-    #[facet(default = true)]
-    pub single_quote: bool,
+    #[cfg_attr(feature = "facet", facet(default = true))]
+    pub(crate) readonly: bool,
     /// `format` -> TS type to use instead of the base type, e.g.
-    /// `binary = "Blob"`, `date-time = "Date"`. Applies to string/number/integer.
-    #[facet(default = Config::default().formats)]
-    pub formats: IndexMap<String, String>,
-    pub filter: Filter,
-    pub schemas: SchemasConfig,
-    pub operation: OperationConfig,
-    #[facet(default = Config::default().emit)]
-    pub emit: Vec<Emit>,
+    /// `binary: Blob`, `date-time: Date`. Applies to string/number/integer.
+    #[cfg_attr(feature = "facet", facet(default = Config::default().formats))]
+    pub(crate) formats: IndexMap<String, String>,
+    /// Which operations are generated, as a selector (`{}` is all of them).
+    /// Applied before everything else, so operations it leaves out don't get
+    /// a type or appear in any `emit`.
+    #[cfg_attr(feature = "facet", facet(default))]
+    pub(crate) filter: Where,
+    #[cfg_attr(feature = "facet", facet(default))]
+    pub(crate) schemas: SchemasConfig,
+    #[cfg_attr(feature = "facet", facet(default))]
+    pub(crate) operation: OperationConfig,
+    #[cfg_attr(feature = "facet", facet(default = Config::default().emit))]
+    pub(crate) emit: Vec<Emit>,
 }
 
 impl Default for Config {
     fn default() -> Self {
         Self {
+            schema: None,
             header: "// This file is generated by opi. Do not edit.".to_string(),
             jsdoc: true,
             readonly: true,
-            single_quote: true,
             formats: IndexMap::from([("binary".to_string(), "Blob".to_string())]),
-            filter: Filter::default(),
+            filter: Where::default(),
             schemas: SchemasConfig::default(),
             operation: OperationConfig::default(),
             emit: vec![Emit {
                 name: template("Paths"),
                 description: None,
-                selector: Selector::default(),
-                kind: EmitKind::Map,
-                key: Templates(vec![template("{path}"), template("{method}")]),
-                value: None,
+                filter: None,
                 group_by: None,
+                shape: Shape::Map(IndexMap::from([(
+                    "{METHOD} {path}".to_string(),
+                    Shape::Map(IndexMap::from([
+                        (
+                            "request".to_string(),
+                            Shape::Value(Value::Template(template("{request}"))),
+                        ),
+                        (
+                            "response".to_string(),
+                            Shape::Value(Value::Template(template("{response}"))),
+                        ),
+                    ])),
+                )])),
             }],
         }
     }
 }
 
-/// Which operations are generated. Applied before everything else, so
-/// excluded operations don't get a type or appear in any `[[emit]]`.
-///   include = { tag = "shop" }         only operations matching this
-///   exclude = { deprecated = true }    minus operations matching this
-#[derive(Debug, Clone, Default, PartialEq, Facet)]
-#[facet(default, deny_unknown_fields)]
-pub struct Filter {
-    /// Only operations matching this (everything if unset).
-    pub include: Option<Selector>,
-    /// Minus operations matching this.
-    pub exclude: Option<Selector>,
-}
-
 /// Which named schemas (`components.schemas`) are generated.
-#[derive(Debug, Clone, PartialEq, Facet)]
-#[facet(default, deny_unknown_fields)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+#[cfg_attr(
+    feature = "facet",
+    derive(facet::Facet),
+    facet(default, deny_unknown_fields)
+)]
 pub struct SchemasConfig {
-    /// `"referenced"`: only schemas the generated operations use, directly or
-    /// through other schemas. `"all"`: every schema in the spec.
-    #[facet(default = SchemaEmit::Referenced)]
+    /// `referenced`: only schemas the generated operations use, directly or
+    /// through other schemas. `all`: every schema in the spec.
+    #[cfg_attr(feature = "facet", facet(default = SchemaEmit::Referenced))]
     pub emit: SchemaEmit,
-    /// Names (`*` wildcards allowed) to generate even when unreferenced, e.g.
-    /// types only used by client code or named in an `[[emit]]` `value`.
+    /// Schemas to generate even when unreferenced, as a selector on `name`
+    /// (`{ name: ["Mix*", Error] }`), e.g. types only used by client code.
     /// Whatever they reference is kept too.
-    #[facet(default)]
-    pub keep: Vec<String>,
+    #[cfg_attr(feature = "facet", facet(default))]
+    pub keep: Option<Where>,
 }
 
 impl Default for SchemasConfig {
     fn default() -> Self {
         Self {
             emit: SchemaEmit::Referenced,
-            keep: Vec::new(),
+            keep: None,
         }
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Facet)]
-#[facet(rename_all = "snake_case")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+#[cfg_attr(
+    feature = "facet",
+    derive(facet::Facet),
+    facet(rename_all = "snake_case")
+)]
 #[repr(u8)]
 pub enum SchemaEmit {
     Referenced,
     All,
 }
 
-/// Shape of the `export type GetFoo = { method, path, request, response }`
-/// generated for each operation.
-#[derive(Debug, Clone, PartialEq, Facet)]
-#[facet(default, deny_unknown_fields)]
+/// The `export type GetFoo = { method, path, request, response }` generated
+/// for each operation.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+#[cfg_attr(
+    feature = "facet",
+    derive(facet::Facet),
+    facet(default, deny_unknown_fields)
+)]
 pub struct OperationConfig {
     /// Type name template, e.g. `"{operationId|pascal}"`. Operations missing
     /// a variable it uses (no `operationId`) fall back to `"{Method}{Path}"`.
-    #[facet(default = template(DEFAULT_OPERATION_NAME))]
+    /// Two operations with the same name are an error; rename one with an
+    /// override.
+    #[cfg_attr(feature = "facet", facet(default = template(DEFAULT_OPERATION_NAME)))]
     pub name: Template,
-    /// How `request` params are grouped.
-    #[facet(default = ParamsLayout::Split)]
-    pub params: ParamsLayout,
-    /// How the `response` map is nested.
-    #[facet(default = ResponseLayout::ByContentType)]
-    pub response: ResponseLayout,
-    /// Content-type key for bodiless responses (e.g. 204) when
-    /// `response = "by_content_type"`.
-    #[facet(default = OperationConfig::default().no_content_key)]
-    pub no_content_key: String,
+    /// Names for particular operations, tried in order before `name`:
+    /// `- { where: { operation_id: "repos/list-for-org" }, name: ListOrgRepos }`
+    #[cfg_attr(feature = "facet", facet(default))]
+    pub overrides: Vec<Override>,
 }
 
 impl Default for OperationConfig {
     fn default() -> Self {
         Self {
             name: template(DEFAULT_OPERATION_NAME),
-            params: ParamsLayout::Split,
-            response: ResponseLayout::ByContentType,
-            no_content_key: "none".to_string(),
+            overrides: Vec::new(),
         }
     }
 }
 
 pub const DEFAULT_OPERATION_NAME: &str = "{Method}{Path}";
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Facet)]
-#[facet(rename_all = "snake_case")]
-#[repr(u8)]
-pub enum ParamsLayout {
-    /// `params` (path), `query`, `headers`, `cookies` as separate keys.
-    Split,
-    /// Path and query params merged into `params`; `headers` / `cookies`
-    /// stay separate.
-    Merged,
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+#[cfg_attr(feature = "facet", derive(facet::Facet), facet(deny_unknown_fields))]
+pub struct Override {
+    /// The operations this names.
+    #[serde(rename = "where")]
+    #[cfg_attr(feature = "facet", facet(rename = "where"))]
+    pub filter: Where,
+    /// Name template, as for `operation.name`.
+    pub name: Template,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Facet)]
-#[facet(rename_all = "snake_case")]
-#[repr(u8)]
-pub enum ResponseLayout {
-    /// `response: { 'application/json': { 200: T } }`
-    ByContentType,
-    /// `response: { 200: { 'application/json': T } }`
-    ByStatus,
-}
-
-/// Aggregate types over operations: `kind = "union"` gives
-/// `export type Name = A | B`, `kind = "map"` gives
-/// `export interface Name { [key]: A }`.
+/// An aggregate type over operations: `shape` is its layout, with keys and
+/// values rendered per operation.
 ///
-/// ```toml
-/// [[emit]]
-/// name = "{Tag}Routes"          # one type per tag
-/// group_by = "tag"
-/// match = { method = "GET" }
-/// kind = "map"
-/// key = ["{path}", "{method}"]  # '/shop/items': { get: GetShopItems }
-/// value = "{type}['response']"  # defaults to "{type}"
-/// ```
-#[derive(Debug, Clone, PartialEq, Facet)]
-#[facet(deny_unknown_fields)]
+///   - name: "{tags|pascal}Routes"          # one type per tag
+///     group_by: tags
+///     where: { method: GET }
+///     shape: { "{path}": { request: "{request}", response: "{response}" } }
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+#[cfg_attr(feature = "facet", derive(facet::Facet), facet(deny_unknown_fields))]
 pub struct Emit {
-    /// Type name. May use `{tag}` / `{method}` when grouped by it.
+    /// Type name. Uses the `group_by` variable when grouped.
     pub name: Template,
     /// JSDoc for the emitted type.
-    #[facet(default)]
+    #[serde(default)]
+    #[cfg_attr(feature = "facet", facet(default))]
     pub description: Option<String>,
-    /// Which operations this covers (a selector, as in `[filter]`). `{}` is
-    /// all of them.
-    #[facet(default, rename = "match", skip_serializing_if = Selector::is_empty)]
-    pub selector: Selector,
-    pub kind: EmitKind,
-    /// `map` only. Each entry is one level of nesting. Operations whose keys
-    /// collide are unioned.
-    #[facet(default, skip_serializing_if = Templates::is_empty)]
-    pub key: Templates,
-    /// TS type for each operation, with `{type}` as the operation's type name.
-    /// Defaults to `{type}`. Operations missing a variable it uses are skipped.
-    #[facet(default)]
-    pub value: Option<Template>,
-    /// Emit one type per distinct value. An operation with several tags
-    /// appears in each of their groups.
-    #[facet(default)]
-    pub group_by: Option<GroupBy>,
+    /// Which operations this covers (a selector, as in `filter`). All of
+    /// them if unset.
+    #[serde(rename = "where", default)]
+    #[cfg_attr(feature = "facet", facet(rename = "where", default))]
+    pub filter: Option<Where>,
+    /// A variable to emit one type per distinct value of: `tags`, `method`,
+    /// `request.content_type`, ... An operation with several values (tags)
+    /// appears in each of their groups; one with none is skipped.
+    #[serde(default)]
+    #[cfg_attr(feature = "facet", facet(default))]
+    pub group_by: Option<String>,
+    /// The type's layout: a map for an object type, a value for a union.
+    pub shape: Shape,
 }
 
-/// `key = "{path}"` or `key = ["{path}", "{method}"]`.
-///
-/// Its own type rather than `List<Template>` because facet's untagged-enum
-/// matching only recognises plain scalars, not proxied ones like
-/// [`Template`]; so it goes through `List<String>` instead.
-#[derive(Debug, Clone, Default, PartialEq, Facet)]
-#[facet(proxy = List<String>)]
-pub struct Templates(pub Vec<Template>);
-
-impl Templates {
-    pub fn as_slice(&self) -> &[Template] {
-        &self.0
+impl Emit {
+    /// The variable to group on, if any. Before validation, also `None` for
+    /// a `group_by` that isn't a [`Var::NAME`].
+    pub fn group_var(&self) -> Option<Var> {
+        let name = self.group_by.as_deref()?;
+        Var::NAME.iter().find(|v| v.name() == name).copied()
     }
-
-    pub fn is_empty(&self) -> bool {
-        self.0.is_empty()
-    }
-}
-
-impl From<List<String>> for Templates {
-    fn from(list: List<String>) -> Self {
-        Templates(
-            list.as_slice()
-                .iter()
-                .cloned()
-                .map(Template::lenient)
-                .collect(),
-        )
-    }
-}
-
-impl From<&Templates> for List<String> {
-    fn from(templates: &Templates) -> Self {
-        List::Many(templates.0.iter().map(|t| t.source().to_string()).collect())
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Facet)]
-#[facet(rename_all = "snake_case")]
-#[repr(u8)]
-pub enum EmitKind {
-    /// `export type Name = GetFoo | GetBar;`
-    Union,
-    /// `export interface Name { [key]: GetFoo }`
-    Map,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Facet)]
-#[facet(rename_all = "snake_case")]
-#[repr(u8)]
-pub enum GroupBy {
-    Tag,
-    Method,
-}
-
-impl GroupBy {
-    /// The template variable this groups on.
-    pub fn var(self) -> &'static str {
-        match self {
-            GroupBy::Tag => "tag",
-            GroupBy::Method => "method",
-        }
-    }
-}
-
-/// Variables available per operation (everything except the type name).
-const OPERATION_VARS: &[&str] = &["method", "path", "operationId", "tag"];
-const EMIT_ENTRY_VARS: &[&str] = &["method", "path", "operationId", "tag", "type"];
-
-impl Config {
-    pub fn from_toml(source: &str) -> Result<Self> {
-        let config: Self = facet_toml::from_str(source).map_err(|e| toml_error(source, e))?;
-        config.validate()?;
-        Ok(config)
-    }
-
-    pub fn from_file(path: &Path) -> Result<Self> {
-        let source =
-            std::fs::read_to_string(path).with_context(|| format!("reading {}", path.display()))?;
-        Self::from_toml(&source).with_context(|| format!("in {}", path.display()))
-    }
-
-    /// Checks that parsing alone can't: variables used where they have no
-    /// value, contradictory `[[emit]]` fields, unknown methods.
-    pub fn validate(&self) -> Result<()> {
-        if let Some(s) = &self.filter.include {
-            s.validate().context("[filter.include]")?;
-        }
-        if let Some(s) = &self.filter.exclude {
-            s.validate().context("[filter.exclude]")?;
-        }
-        self.operation
-            .name
-            .check(OPERATION_VARS, "[operation].name")?;
-
-        for (i, emit) in self.emit.iter().enumerate() {
-            let context = format!("[[emit]] #{} ({:?})", i + 1, emit.name.source());
-            emit.selector.validate().with_context(|| context.clone())?;
-
-            let group_vars: &[&str] = match emit.group_by {
-                Some(g) => &[g.var()],
-                None => &[],
-            };
-            emit.name.check(group_vars, &format!("{context}.name"))?;
-
-            match (emit.kind, emit.key.as_slice().is_empty()) {
-                (EmitKind::Map, true) => bail!("{context}: kind = \"map\" needs a `key`"),
-                (EmitKind::Union, false) => {
-                    bail!("{context}: kind = \"union\" doesn't take a `key`")
-                }
-                _ => {}
-            }
-            for key in emit.key.as_slice() {
-                key.check(EMIT_ENTRY_VARS, &format!("{context}.key"))?;
-            }
-            if let Some(value) = &emit.value {
-                value.check(EMIT_ENTRY_VARS, &format!("{context}.value"))?;
-            }
-        }
-        Ok(())
-    }
-}
-
-/// facet's `Display` prints the path with `{:?}` (a full `Shape` dump), so
-/// format it ourselves: `unknown field `jsdocs` at line 1, column 1 (in <root>)`.
-fn toml_error(source: &str, e: facet_toml::DeserializeError) -> anyhow::Error {
-    let mut message = e.kind.to_string();
-    if let Some(span) = e.span {
-        let before = &source[..(span.offset as usize).min(source.len())];
-        let line = before.matches('\n').count() + 1;
-        let column = before.len() - before.rfind('\n').map_or(0, |i| i + 1) + 1;
-        message.push_str(&format!(" at line {line}, column {column}"));
-    }
-    if let Some(path) = e.path {
-        message.push_str(&format!(" (in {path})"));
-    }
-    anyhow::anyhow!(message)
 }
 
 fn template(source: &str) -> Template {
     Template::parse(source).expect("built-in template is valid")
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    /// The generated `config.toml` loads back to the defaults.
-    #[test]
-    fn default_toml_matches_default() {
-        let source = include_str!("../../config.toml");
-        assert_eq!(Config::from_toml(source).unwrap(), Config::default());
-    }
-
-    #[test]
-    fn empty_toml_is_default() {
-        assert_eq!(Config::from_toml("").unwrap(), Config::default());
-    }
-
-    /// facet only applies a container's `Default` to wholly missing tables,
-    /// so this guards the field-level defaults.
-    #[test]
-    fn partial_tables_keep_defaults() {
-        let config = Config::from_toml("jsdoc = false\n[operation]\nparams = 'merged'").unwrap();
-        let default = Config::default();
-        assert!(!config.jsdoc);
-        assert_eq!(config.header, default.header);
-        assert_eq!(config.formats, default.formats);
-        assert_eq!(config.emit, default.emit);
-        assert_eq!(config.operation.params, ParamsLayout::Merged);
-        assert_eq!(config.operation.name, default.operation.name);
-        assert_eq!(
-            config.operation.no_content_key,
-            default.operation.no_content_key
-        );
-    }
-
-    #[test]
-    fn one_or_many_and_aliases() {
-        let config = Config::from_toml(
-            "[[emit]]\nname = 'X'\nkind = 'map'\nkey = '{path}'\nmatch = { operationId = 'a', method = ['GET', 'PUT'] }",
-        )
-        .unwrap();
-        let emit = &config.emit[0];
-        assert_eq!(emit.key.as_slice().len(), 1);
-        assert_eq!(emit.selector.operation_id, Some(List::One("a".to_string())));
-        assert_eq!(
-            emit.selector.method.as_ref().map(|m| m.as_slice().len()),
-            Some(2)
-        );
-    }
-
-    #[test]
-    fn validation() {
-        let err = |s: &str| format!("{:#}", Config::from_toml(s).unwrap_err());
-        assert!(err("[operation]\nname = '{type}'").contains("isn't available"));
-        assert!(err("[[emit]]\nname = 'X'\nkind = 'map'").contains("needs a `key`"));
-        assert!(err("[[emit]]\nname = '{Tag}'\nkind = 'union'").contains("isn't available"));
-        assert!(err("[filter]\ninclude = { method = 'GTE' }").contains("[filter.include]"));
-        assert!(err("jsdocs = true").contains("unknown field"));
-        assert!(err("[operation]\nname = '{nope}'").contains("unknown variable"));
-    }
 }

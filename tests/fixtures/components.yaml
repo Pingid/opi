@@ -1,25 +1,25 @@
 openapi: 3.0.3
-info: { title: Components, version: "1.0" }
+info: { title: Components, version: '1.0' }
 paths:
   /components/{name}:
     parameters:
-      - $ref: "#/components/parameters/Name"
+      - $ref: '#/components/parameters/Name'
     get:
       operationId: getComponent
       tags: [components]
       summary: Fetch a component
       responses:
-        "200":
+        '200':
           description: The component
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/Component" }
-        "401": { $ref: "#/components/responses/Unauthorized" }
-        "404":
+              schema: { $ref: '#/components/schemas/Component' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404':
           description: No such component
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/Error" }
+              schema: { $ref: '#/components/schemas/Error' }
     put:
       tags: [components, admin]
       parameters:
@@ -29,16 +29,16 @@ paths:
         required: true
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/Component" }
+            schema: { $ref: '#/components/schemas/Component' }
           application/octet-stream:
             schema: { type: string, format: binary }
       responses:
-        "204": { description: Saved }
+        '204': { description: Saved }
         default:
           description: Unexpected error
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/Error" }
+              schema: { $ref: '#/components/schemas/Error' }
   /shop/items:
     get:
       operationId: listItems
@@ -47,11 +47,11 @@ paths:
       parameters:
         - { name: limit, in: query, schema: { type: integer } }
       responses:
-        "200":
+        '200':
           description: The items
           content:
             application/json:
-              schema: { type: array, items: { $ref: "#/components/schemas/Component" } }
+              schema: { type: array, items: { $ref: '#/components/schemas/Component' } }
     post:
       operationId: createItem
       tags: [shop, admin]
@@ -60,9 +60,9 @@ paths:
         required: true
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/Component" }
+            schema: { $ref: '#/components/schemas/Component' }
       responses:
-        "201": { description: Created }
+        '201': { description: Created }
 components:
   parameters:
     Name: { name: name, in: path, required: true, schema: { type: string } }
@@ -71,7 +71,7 @@ components:
       description: Missing or wrong token
       content:
         application/json:
-          schema: { $ref: "#/components/schemas/Error" }
+          schema: { $ref: '#/components/schemas/Error' }
   schemas:
     Component:
       type: object

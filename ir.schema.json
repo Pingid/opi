@@ -1,0 +1,1384 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "version": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Format version, bumped on breaking changes."
+    },
+    "names": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "description": "Raw schema name -> the TS name it's generated as, which is what the\n`ts` sources refer to."
+    },
+    "schemas": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "$ref": "#/$defs/SchemaKind"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "deprecated": {
+            "type": "boolean"
+          },
+          "nullable": {
+            "type": "boolean"
+          },
+          "read_only": {
+            "type": "boolean"
+          },
+          "write_only": {
+            "type": "boolean"
+          },
+          "encoded": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The value arrives as a string of this media type (`contentMediaType`,\ne.g. `application/json`), and the schema describes it decoded."
+          },
+          "ts": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "kind",
+          "ts"
+        ],
+        "additionalProperties": false,
+        "title": "Rendered",
+        "description": "A schema with its TS source beside it."
+      },
+      "description": "Named schemas by raw name (what a `ref` names), after `schemas` pruning."
+    },
+    "operations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "operation_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "method": {
+            "type": "string",
+            "description": "`GET`, `POST`, ..."
+          },
+          "path": {
+            "type": "string",
+            "description": "Templated path, e.g. `/components/{name}`."
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "deprecated": {
+            "type": "boolean"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "params": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "required": {
+                      "type": "boolean"
+                    },
+                    "description": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "deprecated": {
+                      "type": "boolean"
+                    },
+                    "schema": {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "$ref": "#/$defs/SchemaKind"
+                        },
+                        "title": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "description": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "deprecated": {
+                          "type": "boolean"
+                        },
+                        "nullable": {
+                          "type": "boolean"
+                        },
+                        "read_only": {
+                          "type": "boolean"
+                        },
+                        "write_only": {
+                          "type": "boolean"
+                        },
+                        "encoded": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ],
+                          "description": "The value arrives as a string of this media type (`contentMediaType`,\ne.g. `application/json`), and the schema describes it decoded."
+                        },
+                        "ts": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "ts"
+                      ],
+                      "additionalProperties": false,
+                      "title": "Rendered",
+                      "description": "A schema with its TS source beside it."
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "required",
+                    "deprecated",
+                    "schema"
+                  ],
+                  "additionalProperties": false,
+                  "title": "Param"
+                }
+              },
+              "query": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "required": {
+                      "type": "boolean"
+                    },
+                    "description": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "deprecated": {
+                      "type": "boolean"
+                    },
+                    "schema": {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "$ref": "#/$defs/SchemaKind"
+                        },
+                        "title": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "description": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "deprecated": {
+                          "type": "boolean"
+                        },
+                        "nullable": {
+                          "type": "boolean"
+                        },
+                        "read_only": {
+                          "type": "boolean"
+                        },
+                        "write_only": {
+                          "type": "boolean"
+                        },
+                        "encoded": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ],
+                          "description": "The value arrives as a string of this media type (`contentMediaType`,\ne.g. `application/json`), and the schema describes it decoded."
+                        },
+                        "ts": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "ts"
+                      ],
+                      "additionalProperties": false,
+                      "title": "Rendered",
+                      "description": "A schema with its TS source beside it."
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "required",
+                    "deprecated",
+                    "schema"
+                  ],
+                  "additionalProperties": false,
+                  "title": "Param"
+                }
+              },
+              "querystring": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "required": {
+                        "type": "boolean"
+                      },
+                      "description": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "deprecated": {
+                        "type": "boolean"
+                      },
+                      "schema": {
+                        "type": "object",
+                        "properties": {
+                          "kind": {
+                            "$ref": "#/$defs/SchemaKind"
+                          },
+                          "title": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "description": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ]
+                          },
+                          "deprecated": {
+                            "type": "boolean"
+                          },
+                          "nullable": {
+                            "type": "boolean"
+                          },
+                          "read_only": {
+                            "type": "boolean"
+                          },
+                          "write_only": {
+                            "type": "boolean"
+                          },
+                          "encoded": {
+                            "anyOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "null"
+                              }
+                            ],
+                            "description": "The value arrives as a string of this media type (`contentMediaType`,\ne.g. `application/json`), and the schema describes it decoded."
+                          },
+                          "ts": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "kind",
+                          "ts"
+                        ],
+                        "additionalProperties": false,
+                        "title": "Rendered",
+                        "description": "A schema with its TS source beside it."
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "required",
+                      "deprecated",
+                      "schema"
+                    ],
+                    "additionalProperties": false,
+                    "title": "Param"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "OpenAPI 3.2 `in: querystring`: the whole query string as one value.\nExclusive with `query`."
+              },
+              "header": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "required": {
+                      "type": "boolean"
+                    },
+                    "description": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "deprecated": {
+                      "type": "boolean"
+                    },
+                    "schema": {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "$ref": "#/$defs/SchemaKind"
+                        },
+                        "title": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "description": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "deprecated": {
+                          "type": "boolean"
+                        },
+                        "nullable": {
+                          "type": "boolean"
+                        },
+                        "read_only": {
+                          "type": "boolean"
+                        },
+                        "write_only": {
+                          "type": "boolean"
+                        },
+                        "encoded": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ],
+                          "description": "The value arrives as a string of this media type (`contentMediaType`,\ne.g. `application/json`), and the schema describes it decoded."
+                        },
+                        "ts": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "ts"
+                      ],
+                      "additionalProperties": false,
+                      "title": "Rendered",
+                      "description": "A schema with its TS source beside it."
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "required",
+                    "deprecated",
+                    "schema"
+                  ],
+                  "additionalProperties": false,
+                  "title": "Param"
+                }
+              },
+              "cookie": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "required": {
+                      "type": "boolean"
+                    },
+                    "description": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "deprecated": {
+                      "type": "boolean"
+                    },
+                    "schema": {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "$ref": "#/$defs/SchemaKind"
+                        },
+                        "title": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "description": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "deprecated": {
+                          "type": "boolean"
+                        },
+                        "nullable": {
+                          "type": "boolean"
+                        },
+                        "read_only": {
+                          "type": "boolean"
+                        },
+                        "write_only": {
+                          "type": "boolean"
+                        },
+                        "encoded": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ],
+                          "description": "The value arrives as a string of this media type (`contentMediaType`,\ne.g. `application/json`), and the schema describes it decoded."
+                        },
+                        "ts": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "ts"
+                      ],
+                      "additionalProperties": false,
+                      "title": "Rendered",
+                      "description": "A schema with its TS source beside it."
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "required",
+                    "deprecated",
+                    "schema"
+                  ],
+                  "additionalProperties": false,
+                  "title": "Param"
+                }
+              }
+            },
+            "additionalProperties": false,
+            "title": "Params"
+          },
+          "requests": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "content_type": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "body": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "$ref": "#/$defs/SchemaKind"
+                        },
+                        "title": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "description": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "deprecated": {
+                          "type": "boolean"
+                        },
+                        "nullable": {
+                          "type": "boolean"
+                        },
+                        "read_only": {
+                          "type": "boolean"
+                        },
+                        "write_only": {
+                          "type": "boolean"
+                        },
+                        "encoded": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ],
+                          "description": "The value arrives as a string of this media type (`contentMediaType`,\ne.g. `application/json`), and the schema describes it decoded."
+                        },
+                        "ts": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "ts"
+                      ],
+                      "additionalProperties": false,
+                      "title": "Rendered",
+                      "description": "A schema with its TS source beside it."
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "stream": {
+                  "type": "boolean",
+                  "description": "A sequence (`text/event-stream`, `application/jsonl`, ... with\nOpenAPI 3.2's `itemSchema`): `body` is the type of each item, not of\nthe whole body."
+                },
+                "description": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "additionalProperties": false,
+              "title": "Request",
+              "description": "One request shape: a body of one media type, or (`content_type: None`) no\nbody, when there is none or it's optional."
+            },
+            "description": "One per body media type, plus one without a `content_type` when the\nbody is missing or optional. Never empty."
+          },
+          "responses": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "status": {
+                  "type": "string"
+                },
+                "content_type": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "body": {
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "kind": {
+                          "$ref": "#/$defs/SchemaKind"
+                        },
+                        "title": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "description": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ]
+                        },
+                        "deprecated": {
+                          "type": "boolean"
+                        },
+                        "nullable": {
+                          "type": "boolean"
+                        },
+                        "read_only": {
+                          "type": "boolean"
+                        },
+                        "write_only": {
+                          "type": "boolean"
+                        },
+                        "encoded": {
+                          "anyOf": [
+                            {
+                              "type": "string"
+                            },
+                            {
+                              "type": "null"
+                            }
+                          ],
+                          "description": "The value arrives as a string of this media type (`contentMediaType`,\ne.g. `application/json`), and the schema describes it decoded."
+                        },
+                        "ts": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "kind",
+                        "ts"
+                      ],
+                      "additionalProperties": false,
+                      "title": "Rendered",
+                      "description": "A schema with its TS source beside it."
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "stream": {
+                  "type": "boolean",
+                  "description": "A sequence, as for a request: `body` is the type of each item."
+                },
+                "description": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                }
+              },
+              "required": [
+                "status"
+              ],
+              "additionalProperties": false,
+              "title": "Response",
+              "description": "One status and media type pair, or (`content_type: None`) a bodiless\nresponse such as 204."
+            },
+            "description": "One per status and media type, in spec order."
+          }
+        },
+        "required": [
+          "method",
+          "path",
+          "deprecated",
+          "tags",
+          "params",
+          "requests",
+          "responses"
+        ],
+        "additionalProperties": false,
+        "title": "Operation"
+      }
+    }
+  },
+  "required": [
+    "version",
+    "names",
+    "schemas",
+    "operations"
+  ],
+  "additionalProperties": false,
+  "title": "Export",
+  "$defs": {
+    "SchemaKind": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "unknown"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "never"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "string"
+            },
+            "format": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "number"
+            },
+            "format": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "integer"
+            },
+            "format": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "boolean"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "null"
+            }
+          },
+          "required": [
+            "type"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "enum"
+            },
+            "values": {
+              "type": "array",
+              "items": {
+                "type": [
+                  "string",
+                  "number",
+                  "boolean",
+                  "null"
+                ],
+                "description": "A `const` / `enum` value."
+              }
+            }
+          },
+          "required": [
+            "type",
+            "values"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "array"
+            },
+            "items": {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "$ref": "#/$defs/SchemaKind"
+                },
+                "title": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "description": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "deprecated": {
+                  "type": "boolean"
+                },
+                "nullable": {
+                  "type": "boolean"
+                },
+                "read_only": {
+                  "type": "boolean"
+                },
+                "write_only": {
+                  "type": "boolean"
+                },
+                "encoded": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "The value arrives as a string of this media type (`contentMediaType`,\ne.g. `application/json`), and the schema describes it decoded."
+                }
+              },
+              "required": [
+                "kind"
+              ],
+              "additionalProperties": false,
+              "title": "Schema",
+              "description": "A type in the intermediate representation.\n\nThis is deliberately closer to \"what a TS type can express\" than to JSON\nSchema: validation-only keywords (`minLength`, `pattern`, ...) are dropped\nduring lowering, and nullability / enums are normalised so emitters don't\nhave to re-derive them.\n\nSerialised (for `--emit-ir`) as the `SchemaKind` under `kind` with the\n`Meta` fields beside it: `{ \"kind\": { \"type\": \"string\" }, \"nullable\": true }`."
+            }
+          },
+          "required": [
+            "type",
+            "items"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "object"
+            },
+            "properties": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "$ref": "#/$defs/SchemaKind"
+                  },
+                  "title": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "description": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "deprecated": {
+                    "type": "boolean"
+                  },
+                  "nullable": {
+                    "type": "boolean"
+                  },
+                  "read_only": {
+                    "type": "boolean"
+                  },
+                  "write_only": {
+                    "type": "boolean"
+                  },
+                  "encoded": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "description": "The value arrives as a string of this media type (`contentMediaType`,\ne.g. `application/json`), and the schema describes it decoded."
+                  },
+                  "required": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "required"
+                ],
+                "additionalProperties": false,
+                "title": "Property",
+                "description": "A property: its schema's fields with `required` beside them."
+              }
+            },
+            "additional": {
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "$ref": "#/$defs/SchemaKind"
+                    },
+                    "title": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "description": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
+                    "deprecated": {
+                      "type": "boolean"
+                    },
+                    "nullable": {
+                      "type": "boolean"
+                    },
+                    "read_only": {
+                      "type": "boolean"
+                    },
+                    "write_only": {
+                      "type": "boolean"
+                    },
+                    "encoded": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "description": "The value arrives as a string of this media type (`contentMediaType`,\ne.g. `application/json`), and the schema describes it decoded."
+                    }
+                  },
+                  "required": [
+                    "kind"
+                  ],
+                  "additionalProperties": false,
+                  "title": "Schema",
+                  "description": "A type in the intermediate representation.\n\nThis is deliberately closer to \"what a TS type can express\" than to JSON\nSchema: validation-only keywords (`minLength`, `pattern`, ...) are dropped\nduring lowering, and nullability / enums are normalised so emitters don't\nhave to re-derive them.\n\nSerialised (for `--emit-ir`) as the `SchemaKind` under `kind` with the\n`Meta` fields beside it: `{ \"kind\": { \"type\": \"string\" }, \"nullable\": true }`."
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "`additionalProperties`. `None` means \"not specified / closed\"."
+            }
+          },
+          "required": [
+            "type",
+            "properties"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "union"
+            },
+            "members": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "$ref": "#/$defs/SchemaKind"
+                  },
+                  "title": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "description": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "deprecated": {
+                    "type": "boolean"
+                  },
+                  "nullable": {
+                    "type": "boolean"
+                  },
+                  "read_only": {
+                    "type": "boolean"
+                  },
+                  "write_only": {
+                    "type": "boolean"
+                  },
+                  "encoded": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "description": "The value arrives as a string of this media type (`contentMediaType`,\ne.g. `application/json`), and the schema describes it decoded."
+                  }
+                },
+                "required": [
+                  "kind"
+                ],
+                "additionalProperties": false,
+                "title": "Schema",
+                "description": "A type in the intermediate representation.\n\nThis is deliberately closer to \"what a TS type can express\" than to JSON\nSchema: validation-only keywords (`minLength`, `pattern`, ...) are dropped\nduring lowering, and nullability / enums are normalised so emitters don't\nhave to re-derive them.\n\nSerialised (for `--emit-ir`) as the `SchemaKind` under `kind` with the\n`Meta` fields beside it: `{ \"kind\": { \"type\": \"string\" }, \"nullable\": true }`."
+              }
+            }
+          },
+          "required": [
+            "type",
+            "members"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "intersection"
+            },
+            "members": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "$ref": "#/$defs/SchemaKind"
+                  },
+                  "title": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "description": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "deprecated": {
+                    "type": "boolean"
+                  },
+                  "nullable": {
+                    "type": "boolean"
+                  },
+                  "read_only": {
+                    "type": "boolean"
+                  },
+                  "write_only": {
+                    "type": "boolean"
+                  },
+                  "encoded": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "description": "The value arrives as a string of this media type (`contentMediaType`,\ne.g. `application/json`), and the schema describes it decoded."
+                  }
+                },
+                "required": [
+                  "kind"
+                ],
+                "additionalProperties": false,
+                "title": "Schema",
+                "description": "A type in the intermediate representation.\n\nThis is deliberately closer to \"what a TS type can express\" than to JSON\nSchema: validation-only keywords (`minLength`, `pattern`, ...) are dropped\nduring lowering, and nullability / enums are normalised so emitters don't\nhave to re-derive them.\n\nSerialised (for `--emit-ir`) as the `SchemaKind` under `kind` with the\n`Meta` fields beside it: `{ \"kind\": { \"type\": \"string\" }, \"nullable\": true }`."
+              }
+            }
+          },
+          "required": [
+            "type",
+            "members"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "const": "ref"
+            },
+            "name": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "type",
+            "name"
+          ],
+          "additionalProperties": false
+        }
+      ],
+      "title": "SchemaKind",
+      "description": "Tagged by `type`: `{ \"type\": \"array\", \"items\": {…} }`."
+    }
+  }
+}

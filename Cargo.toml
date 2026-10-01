@@ -3,38 +3,30 @@ name = "opi"
 version = "0.1.0"
 edition = "2024"
 
+[features]
+# Reflection over the config and IR types: the tests generate the commented
+# example config, their JSON Schemas and TypeScript types (see `src/reflect`).
+facet = [
+    "dep:facet",
+    "dep:facet-format",
+    "dep:facet-reflect",
+    "dep:facet-typescript",
+]
+
 [dependencies]
 anyhow = "1.0.104"
-facet = { version = "0.46.5", features = ["indexmap"] }
-facet-toml = "0.46.1"
-facet-yaml = "0.46.1"
-figue = "4.0.5"
 indexmap = { version = "2", features = ["serde"] }
-oas3 = "0.22.0"
+lexopt = "0.3"
 oxc_allocator = "0.152.0"
 oxc_ast = "0.152.0"
 oxc_codegen = "0.152.0"
-oxc_parser = "0.152.0"
 oxc_span = "0.152.0"
 serde = { version = "1.0.229", features = ["serde_derive"] }
-serde_json = "1.0.151"
+serde_json = { version = "1.0.151", features = ["preserve_order"] }
 serde_path_to_error = "0.1.20"
 serde_yaml = "0.9.34"
 
-[build-dependencies]
-anyhow = "1.0.104"
-facet = { version = "0.46.5", features = ["indexmap"] }
-facet-format = "0.47.1"
-facet-reflect = "0.46.5"
-facet-toml = "0.46.1"
-indexmap = { version = "2", features = ["serde"] }
-facet-json = "0.46.1"
-facet-json-schema = "0.46.1"
-
-[dev-dependencies]
-# The previous spec parser, for comparison in examples/parse_bench.rs.
-openapiv3 = "2.2.0"
-# For tests/config_toml.rs, which includes build/fmt.rs.
-facet-format = "0.47.1"
-facet-json = "0.46.1"
-facet-reflect = "0.46.5"
+facet = { version = "0.46.5", features = ["indexmap"], optional = true }
+facet-format = { version = "0.47.1", optional = true }
+facet-reflect = { version = "0.46.5", optional = true }
+facet-typescript = { version = "0.46.0", optional = true }

@@ -3,7 +3,7 @@
 # JSON Schema 2020-12 keywords (`type` arrays, `const`, boolean schemas,
 # `$ref` siblings, JSON `contentSchema`).
 openapi: 3.2.0
-info: { title: OpenAPI 3.2, version: "1.0" }
+info: { title: OpenAPI 3.2, version: '1.0' }
 paths:
   /search:
     query:
@@ -21,17 +21,17 @@ paths:
                   limit: { type: integer }
                 required: [q]
       responses:
-        "200":
+        '200':
           content:
             application/json:
-              schema: { type: array, items: { $ref: "#/components/schemas/Item" } }
+              schema: { type: array, items: { $ref: '#/components/schemas/Item' } }
     additionalOperations:
       PURGE:
         operationId: purgeSearch
         responses:
-          "204": { description: Purged }
+          '204': { description: Purged }
   /events:
-    $ref: "#/components/pathItems/Events"
+    $ref: '#/components/pathItems/Events'
   x-ignored: extension keys in `paths` are skipped
 components:
   pathItems:
@@ -51,7 +51,7 @@ components:
                     data:
                       type: string
                       contentMediaType: application/json
-                      contentSchema: { $ref: "#/components/schemas/Update" }
+                      contentSchema: { $ref: '#/components/schemas/Update' }
   schemas:
     Item:
       type: object
@@ -59,15 +59,15 @@ components:
       properties:
         id: { type: integer, format: int64 }
         kind: { const: item }
-        name: { type: [string, "null"] }
+        name: { type: [string, 'null'] }
         tags: { type: array, items: { type: string } }
         parent:
-          $ref: "#/components/schemas/Item"
+          $ref: '#/components/schemas/Item'
           description: A `$ref` with a sibling description (3.1+)
         anything: true
         nothing: false
         either: { type: [string, integer] }
-        nothingButNull: { type: "null" }
+        nothingButNull: { type: 'null' }
         # Not JSON, or JSON behind a `contentEncoding`: stays a string.
         thumbnail:
           type: string

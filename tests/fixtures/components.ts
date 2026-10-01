@@ -2,134 +2,147 @@
 
 /** @description A reusable component */
 export type Component = {
-  type: 'component'
-  /** @description Server-assigned id */
-  readonly id?: string
-  component: Record<string, unknown>
-  tags?: string[] | null
-}
+	type: "component";
+	/** @description Server-assigned id */
+	readonly id?: string;
+	component: Record<string, unknown>;
+	tags?: string[] | null;
+};
 export type Error2 = {
-  type: 'error'
-  message: string
-}
+	type: "error";
+	message: string;
+};
 /** @summary Fetch a component */
 export type GetComponentsByName = {
-  method: 'GET'
-  path: '/components/{name}'
-  request: {
-    body?: never
-    contentType?: never
-    params: {
-      name: string
-    }
-    query?: never
-    headers?: never
-    cookies?: never
-  }
-  response: {
-    'application/json': {
-      /** @description The component */
-      200: Component
-      /** @description Missing or wrong token */
-      401: Error2
-      /** @description No such component */
-      404: Error2
-    }
-  }
-}
+	method: "GET";
+	path: "/components/{name}";
+	request: {
+		body?: never;
+		contentType?: never;
+		params: {
+			name: string;
+		};
+		query?: never;
+		headers?: never;
+		cookies?: never;
+	};
+	response: {
+		/** @description The component */
+		status: 200;
+		contentType: "application/json";
+		body: Component;
+	} | {
+		/** @description Missing or wrong token */
+		status: 401;
+		contentType: "application/json";
+		body: Error2;
+	} | {
+		/** @description No such component */
+		status: 404;
+		contentType: "application/json";
+		body: Error2;
+	};
+};
 export type PutComponentsByName = {
-  method: 'PUT'
-  path: '/components/{name}'
-  request:
-    | {
-        body: Component
-        contentType: 'application/json'
-        params: {
-          name: string
-        }
-        query?: {
-          'dry-run'?: boolean
-        }
-        headers: {
-          'X-Request-Id': string
-        }
-        cookies?: never
-      }
-    | {
-        body: Blob
-        contentType: 'application/octet-stream'
-        params: {
-          name: string
-        }
-        query?: {
-          'dry-run'?: boolean
-        }
-        headers: {
-          'X-Request-Id': string
-        }
-        cookies?: never
-      }
-  response: {
-    none: {
-      /** @description Saved */
-      204: never
-    }
-    'application/json': {
-      /** @description Unexpected error */
-      default: Error2
-    }
-  }
-}
+	method: "PUT";
+	path: "/components/{name}";
+	request: {
+		body: Component;
+		contentType: "application/json";
+		params: {
+			name: string;
+		};
+		query?: {
+			"dry-run"?: boolean;
+		};
+		headers: {
+			"X-Request-Id": string;
+		};
+		cookies?: never;
+	} | {
+		body: Blob;
+		contentType: "application/octet-stream";
+		params: {
+			name: string;
+		};
+		query?: {
+			"dry-run"?: boolean;
+		};
+		headers: {
+			"X-Request-Id": string;
+		};
+		cookies?: never;
+	};
+	response: {
+		/** @description Saved */
+		status: 204;
+		contentType: null;
+		body?: never;
+	} | {
+		/** @description Unexpected error */
+		status: "default";
+		contentType: "application/json";
+		body: Error2;
+	};
+};
 /** @summary List items */
 export type GetShopItems = {
-  method: 'GET'
-  path: '/shop/items'
-  request: {
-    body?: never
-    contentType?: never
-    params?: never
-    query?: {
-      limit?: number
-    }
-    headers?: never
-    cookies?: never
-  }
-  response: {
-    'application/json': {
-      /** @description The items */
-      200: Component[]
-    }
-  }
-}
+	method: "GET";
+	path: "/shop/items";
+	request: {
+		body?: never;
+		contentType?: never;
+		params?: never;
+		query?: {
+			limit?: number;
+		};
+		headers?: never;
+		cookies?: never;
+	};
+	response: {
+		/** @description The items */
+		status: 200;
+		contentType: "application/json";
+		body: Component[];
+	};
+};
 /** @deprecated */
 export type PostShopItems = {
-  method: 'POST'
-  path: '/shop/items'
-  request: {
-    body: Component
-    contentType: 'application/json'
-    params?: never
-    query?: never
-    headers?: never
-    cookies?: never
-  }
-  response: {
-    none: {
-      /** @description Created */
-      201: never
-    }
-  }
-}
-export interface Paths {
-  '/components/{name}': {
-    /** @summary Fetch a component */
-    get: GetComponentsByName
-    put: PutComponentsByName
-  }
-  '/shop/items': {
-    /** @summary List items */
-    get: GetShopItems
-    /** @deprecated */
-    post: PostShopItems
-  }
-}
+	method: "POST";
+	path: "/shop/items";
+	request: {
+		body: Component;
+		contentType: "application/json";
+		params?: never;
+		query?: never;
+		headers?: never;
+		cookies?: never;
+	};
+	response: {
+		/** @description Created */
+		status: 201;
+		contentType: null;
+		body?: never;
+	};
+};
+export type Paths = {
+	/** @summary Fetch a component */
+	"GET /components/{name}": {
+		request: GetComponentsByName["request"];
+		response: GetComponentsByName["response"];
+	};
+	"PUT /components/{name}": {
+		request: PutComponentsByName["request"];
+		response: PutComponentsByName["response"];
+	};
+	/** @summary List items */
+	"GET /shop/items": {
+		request: GetShopItems["request"];
+		response: GetShopItems["response"];
+	};
+	/** @deprecated */
+	"POST /shop/items": {
+		request: PostShopItems["request"];
+		response: PostShopItems["response"];
+	};
+};

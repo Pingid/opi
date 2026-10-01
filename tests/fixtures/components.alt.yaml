@@ -1,0 +1,10 @@
+# Every non-emit knob flipped from its default.
+header: ''
+jsdoc: false
+operation:
+  name: '{id|pascal}'
+schemas:
+  emit: all
+emit:
+  - name: Routes
+    shape: { '{METHOD} {path}': '{type_name}' }

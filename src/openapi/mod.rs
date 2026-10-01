@@ -13,6 +13,7 @@ use anyhow::{Context, Result, bail};
 pub use model::Document;
 
 use crate::ir::{self, Method};
+use crate::load;
 
 #[derive(Debug)]
 pub struct Spec {
@@ -21,7 +22,7 @@ pub struct Spec {
 
 impl Spec {
     /// Rejects anything that isn't OpenAPI 3.x.
-    pub fn new(document: Document) -> Result<Self> {
+    pub(crate) fn new(document: Document) -> Result<Self> {
         match (&document.openapi, &document.swagger) {
             (Some(v), _) if v.starts_with("3.") => Ok(Self { document }),
             (Some(v), _) => bail!("unsupported OpenAPI version {v} (expected 3.x)"),
@@ -34,30 +35,20 @@ impl Spec {
         Self::new(serde_json::from_str(json)?)
     }
 
-    pub fn from_yaml(yaml: &str) -> Result<Self> {
+    pub(crate) fn from_yaml(yaml: &str) -> Result<Self> {
         Self::new(serde_yaml::from_str(yaml)?)
     }
 
     pub fn from_file(path: &Path) -> Result<Self> {
-        let text =
-            std::fs::read_to_string(path).with_context(|| format!("reading {}", path.display()))?;
-        let ext = path.extension().unwrap_or_default();
-        let spec = if ext == "json" {
-            Self::from_json(&text)
-        } else if ext == "yaml" || ext == "yml" {
-            Self::from_yaml(&text)
-        } else {
-            bail!("Unsupported file extension: {}", ext.to_string_lossy());
-        };
-        spec.with_context(|| format!("in {}", path.display()))
-    }
-
-    pub fn document(&self) -> &Document {
-        &self.document
+        load::file(path, |ext, text| match ext {
+            "json" => Self::from_json(text),
+            "yaml" | "yml" => Self::from_yaml(text),
+            _ => bail!("Unsupported file extension: {ext}"),
+        })
     }
 
     /// Lower the spec into the intermediate representation.
-    pub fn lower(&self) -> Result<ir::Api> {
+    pub(crate) fn lower(&self) -> Result<ir::Api> {
         let components = &self.document.components;
 
         let schemas = components
@@ -85,7 +76,7 @@ impl Spec {
     }
 }
 
-/// The fixed methods in a stable order (the one `openapiv3` used), then 3.2's
+/// The standard methods in [`Method::STANDARD`] order, then 3.2's
 /// `additionalOperations` in spec order.
 fn operations_of(item: &model::PathItem) -> impl Iterator<Item = (Method, &model::Operation)> {
     let fixed = [
@@ -99,10 +90,14 @@ fn operations_of(item: &model::PathItem) -> impl Iterator<Item = (Method, &model
         (Method::Trace, &item.trace),
         (Method::Query, &item.query),
     ];
-    let fixed = fixed.into_iter().filter_map(|(method, op)| Some((method, op.as_ref()?)));
-    let additional = item
-        .additional_operations
-        .iter()
-        .map(|(name, op)| (Method::parse(name).unwrap_or_else(|| Method::Other(name.clone())), op));
+    let fixed = fixed
+        .into_iter()
+        .filter_map(|(method, op)| Some((method, op.as_ref()?)));
+    let additional = item.additional_operations.iter().map(|(name, op)| {
+        (
+            Method::parse(name).unwrap_or_else(|| Method::Other(name.clone())),
+            op,
+        )
+    });
     fixed.chain(additional)
 }

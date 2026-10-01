@@ -48,10 +48,10 @@ pub fn resolve<'s, T: Referable>(components: &'s Components, mut item: &'s T) ->
         let Some(reference) = item.reference() else {
             return Ok(item);
         };
-        let Some(name) = reference.strip_prefix(T::PREFIX) else {
+        let Some(name) = component_name(reference, T::PREFIX) else {
             bail!("unsupported ref {reference} (expected {}*)", T::PREFIX);
         };
-        let Some(next) = T::components(components).get(&unescape(name)) else {
+        let Some(next) = T::components(components).get(&name) else {
             bail!("dangling ref {reference}");
         };
         item = next;
@@ -59,7 +59,13 @@ pub fn resolve<'s, T: Referable>(components: &'s Components, mut item: &'s T) ->
     bail!("ref chain too deep (cycle?) under {}", T::PREFIX)
 }
 
+/// The component a `<prefix><name>` ref names, unescaped; `None` for any
+/// other ref.
+pub fn component_name(reference: &str, prefix: &str) -> Option<String> {
+    reference.strip_prefix(prefix).map(unescape)
+}
+
 /// JSON Pointer escapes in a ref segment: `~1` -> `/`, `~0` -> `~`.
-pub fn unescape(segment: &str) -> String {
+fn unescape(segment: &str) -> String {
     segment.replace("~1", "/").replace("~0", "~")
 }
