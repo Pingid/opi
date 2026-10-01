@@ -1,0 +1,44 @@
+{
+  "name": "@pingid/opi",
+  "version": "1.0.0",
+  "description": "",
+  "keywords": [],
+  "license": "ISC",
+  "author": "",
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "main": "dist/src/index.mjs",
+  "types": "dist/src/index.d.mts",
+  "bin": {
+    "opi": "dist/cli/index.mjs"
+  },
+  "exports": {
+    ".": "./dist/src/index.mjs",
+    "./cli": "./dist/cli/index.mjs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "@pingid/lib": "github:Pingid/lib#build-75",
+    "prettier": "^3.9.9",
+    "typescript": "^7.0.2",
+    "vite-plus": "catalog:",
+    "opi": "github:Pingid/opi#build-1"
+  },
+  "prettier": {
+    "printWidth": 120,
+    "semi": false,
+    "singleQuote": true,
+    "trailingComma": "all"
+  },
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "12.8.1",
+      "onFail": "download"
+    }
+  }
+}
