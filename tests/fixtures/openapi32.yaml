@@ -1,0 +1,86 @@
+# OpenAPI 3.1 / 3.2 features: `query` / `additionalOperations` methods,
+# `querystring` params, streaming `itemSchema`, `$ref`'d path items, and
+# JSON Schema 2020-12 keywords (`type` arrays, `const`, boolean schemas,
+# `$ref` siblings, JSON `contentSchema`).
+openapi: 3.2.0
+info: { title: OpenAPI 3.2, version: "1.0" }
+paths:
+  /search:
+    query:
+      operationId: searchItems
+      parameters:
+        - name: filter
+          in: querystring
+          required: true
+          content:
+            application/x-www-form-urlencoded:
+              schema:
+                type: object
+                properties:
+                  q: { type: string }
+                  limit: { type: integer }
+                required: [q]
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/Item" } }
+    additionalOperations:
+      PURGE:
+        operationId: purgeSearch
+        responses:
+          "204": { description: Purged }
+  /events:
+    $ref: "#/components/pathItems/Events"
+  x-ignored: extension keys in `paths` are skipped
+components:
+  pathItems:
+    Events:
+      get:
+        operationId: streamEvents
+        responses:
+          2XX:
+            description: One event per message
+            content:
+              text/event-stream:
+                itemSchema:
+                  type: object
+                  required: [data]
+                  properties:
+                    event: { const: update }
+                    data:
+                      type: string
+                      contentMediaType: application/json
+                      contentSchema: { $ref: "#/components/schemas/Update" }
+  schemas:
+    Item:
+      type: object
+      required: [id, kind]
+      properties:
+        id: { type: integer, format: int64 }
+        kind: { const: item }
+        name: { type: [string, "null"] }
+        tags: { type: array, items: { type: string } }
+        parent:
+          $ref: "#/components/schemas/Item"
+          description: A `$ref` with a sibling description (3.1+)
+        anything: true
+        nothing: false
+        either: { type: [string, integer] }
+        nothingButNull: { type: "null" }
+        # Not JSON, or JSON behind a `contentEncoding`: stays a string.
+        thumbnail:
+          type: string
+          contentMediaType: image/png
+          contentEncoding: base64
+        packed:
+          type: string
+          contentMediaType: application/json
+          contentEncoding: base64
+          contentSchema: { type: object }
+    # Only reachable through an event's `contentSchema`.
+    Update:
+      type: object
+      required: [id]
+      properties:
+        id: { type: integer }

@@ -1,0 +1,97 @@
+openapi: 3.0.3
+info: { title: Components, version: "1.0" }
+paths:
+  /components/{name}:
+    parameters:
+      - $ref: "#/components/parameters/Name"
+    get:
+      operationId: getComponent
+      tags: [components]
+      summary: Fetch a component
+      responses:
+        "200":
+          description: The component
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Component" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404":
+          description: No such component
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+    put:
+      tags: [components, admin]
+      parameters:
+        - { name: dry-run, in: query, schema: { type: boolean } }
+        - { name: X-Request-Id, in: header, required: true, schema: { type: string } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/Component" }
+          application/octet-stream:
+            schema: { type: string, format: binary }
+      responses:
+        "204": { description: Saved }
+        default:
+          description: Unexpected error
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+  /shop/items:
+    get:
+      operationId: listItems
+      tags: [shop]
+      summary: List items
+      parameters:
+        - { name: limit, in: query, schema: { type: integer } }
+      responses:
+        "200":
+          description: The items
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/Component" } }
+    post:
+      operationId: createItem
+      tags: [shop, admin]
+      deprecated: true
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/Component" }
+      responses:
+        "201": { description: Created }
+components:
+  parameters:
+    Name: { name: name, in: path, required: true, schema: { type: string } }
+  responses:
+    Unauthorized:
+      description: Missing or wrong token
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+  schemas:
+    Component:
+      type: object
+      description: A reusable component
+      required: [type, component]
+      properties:
+        type: { type: string, enum: [component] }
+        id: { type: string, readOnly: true, description: Server-assigned id }
+        component: { type: object, additionalProperties: true }
+        tags: { type: array, items: { type: string }, nullable: true }
+    Error:
+      type: object
+      required: [type, message]
+      properties:
+        type: { type: string, enum: [error] }
+        message: { type: string }
+    Mixed:
+      type: array
+      items:
+        oneOf:
+          - { type: string }
+          - { type: integer, enum: [1, -2] }
+        nullable: true

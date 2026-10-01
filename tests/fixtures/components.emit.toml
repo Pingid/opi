@@ -1,0 +1,33 @@
+# Exercises [filter] and each [[emit]] feature.
+[filter]
+exclude = { deprecated = true, not = { has_body = true } }  # keeps deprecated POST
+
+[[emit]]
+name = "GetRequests"
+description = "Every GET operation."
+match = { method = "GET" }
+kind = "union"
+
+[[emit]]
+name = "{Tag}Routes"
+group_by = "tag"
+kind = "map"
+key = "{METHOD} {path}"
+
+[[emit]]
+name = "ShopPaths"
+match = { path = "/shop/**" }
+kind = "map"
+key = ["{path}", "{method}"]
+
+[[emit]]
+name = "RequestBodies"
+match = { has_body = true }
+kind = "map"
+key = "{operationId}"             # PUT has no id, so it is skipped
+value = "{type}['request']['body']"
+
+[[emit]]
+name = "ByTag"
+kind = "map"
+key = "{tag}"                     # colliding keys are unioned

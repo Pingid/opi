@@ -1,0 +1,8 @@
+# Schema pruning: only shop operations, so `Error` (used only by the
+# component endpoints) is dropped, while `keep` retains the unreferenced
+# `Mixed`.
+[filter]
+include = { tag = "shop" }
+
+[schemas]
+keep = ["Mix*"]
