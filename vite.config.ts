@@ -18,7 +18,10 @@ export default defineConfig({
       publish: { command: 'node bin/pkg.ts', dependsOn: ['build'] },
       build: { command: ['vp pack', 'vp run compile:all'] },
       'compile:all': {
-        command: builds.map((build) => `cp ${build.output}/release/opi ./dist/cli/opi-${build.target}`),
+        command: builds.map(
+          (build) =>
+            `mkdir -p ./dist/cli/${build.target} && cp ${build.output}/release/opi ./dist/cli/${build.target}/opi`,
+        ),
         dependsOn: builds.map((build) => `compile:${build.target}`),
       },
       ...builds
@@ -26,7 +29,7 @@ export default defineConfig({
           [`compile:${build.target}`]: {
             command: `${build.build} --release`,
             cache: {
-              input: ['./src/**/*.rs', 'Cargo.lock'],
+              input: ['./opi/src/**/*.rs', './opi/Cargo.toml', 'Cargo.lock'],
               output: [`${build.output}/release/opi`],
             },
           },

@@ -23,7 +23,7 @@
   },
   "devDependencies": {
     "@pingid/lib": "github:Pingid/lib#build-75",
-    "opi": "github:Pingid/opi#build-3",
+    "opi": "github:Pingid/opi#build-8",
     "prettier": "^3.9.9",
     "typescript": "^7.0.2",
     "vite-plus": "catalog:"

@@ -1,271 +1,65 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Config",
   "type": "object",
   "properties": {
     "$schema": {
-      "anyOf": [
-        {
-          "type": "string"
-        },
-        {
-          "type": "null"
-        }
+      "description": "Path or URL of this file's JSON Schema, for editors. Ignored.",
+      "type": [
+        "string",
+        "null"
       ],
-      "description": "Path or URL of this file's JSON Schema, for editors. Ignored."
+      "default": null
     },
-    "header": {
-      "type": "string",
-      "description": "Prepended verbatim to the output. `\"\"` for none."
-    },
-    "jsdoc": {
-      "type": "boolean",
-      "description": "Emit `/** @description ... */` comments."
-    },
-    "readonly": {
-      "type": "boolean",
-      "description": "Emit `readonly` for `readOnly: true` properties."
+    "source": {
+      "description": "Source OpenAPI spec to read (.json, .yaml or .yml). The CLI's\n`openapi` argument takes precedence. Relative to this file.\nExample:\n```yaml\nsource: ./schemas/openapi.yaml\n```",
+      "type": [
+        "string",
+        "null"
+      ],
+      "default": null
     },
     "formats": {
+      "description": "Schema `format` -> the TS type to use instead of the base type, for\nstrings, numbers and integers. `{}` turns it off.\nExample:\n```yaml\nformats: { binary: Blob, date-time: Date }\n```",
       "type": "object",
       "additionalProperties": {
         "type": "string"
       },
-      "description": "`format` -> TS type to use instead of the base type, e.g.\n`binary: Blob`, `date-time: Date`. Applies to string/number/integer."
+      "default": {
+        "binary": "Blob"
+      }
     },
-    "filter": {
-      "$ref": "#/$defs/Where",
-      "description": "Which operations are generated, as a selector (`{}` is all of them).\nApplied before everything else, so operations it leaves out don't get\na type or appear in any `emit`."
-    },
-    "schemas": {
-      "type": "object",
-      "properties": {
-        "emit": {
-          "type": "string",
-          "enum": [
-            "referenced",
-            "all"
-          ],
-          "title": "SchemaEmit",
-          "description": "`referenced`: only schemas the generated operations use, directly or\nthrough other schemas. `all`: every schema in the spec."
-        },
-        "keep": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/Where"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Schemas to generate even when unreferenced, as a selector on `name`\n(`{ name: [\"Mix*\", Error] }`), e.g. types only used by client code.\nWhatever they reference is kept too."
-        }
-      },
-      "additionalProperties": false,
-      "title": "SchemasConfig",
-      "description": "Which named schemas (`components.schemas`) are generated."
-    },
-    "operation": {
-      "type": "object",
-      "properties": {
-        "name": {
-          "type": "string",
-          "description": "Type name template, e.g. `\"{operationId|pascal}\"`. Operations missing\na variable it uses (no `operationId`) fall back to `\"{Method}{Path}\"`.\nTwo operations with the same name are an error; rename one with an\noverride."
-        },
-        "overrides": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "properties": {
-              "where": {
-                "$ref": "#/$defs/Where",
-                "description": "The operations this names."
-              },
-              "name": {
-                "type": "string",
-                "description": "Name template, as for `operation.name`."
-              }
-            },
-            "required": [
-              "where",
-              "name"
-            ],
-            "additionalProperties": false,
-            "title": "Override"
-          },
-          "description": "Names for particular operations, tried in order before `name`:\n`- { where: { operation_id: \"repos/list-for-org\" }, name: ListOrgRepos }`"
-        }
-      },
-      "additionalProperties": false,
-      "title": "OperationConfig",
-      "description": "The `export type GetFoo = { method, path, request, response }` generated\nfor each operation."
-    },
-    "emit": {
+    "rules": {
+      "description": "Rules whose output goes to the CLI's `output` argument, or stdout.\nEmpty when omitted; the built-in rules only apply without a config.",
       "type": "array",
       "items": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string",
-            "description": "Type name. Uses the `group_by` variable when grouped."
-          },
-          "description": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "JSDoc for the emitted type."
-          },
-          "where": {
-            "anyOf": [
-              {
-                "$ref": "#/$defs/Where"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "Which operations this covers (a selector, as in `filter`). All of\nthem if unset."
-          },
-          "group_by": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "A variable to emit one type per distinct value of: `tags`, `method`,\n`request.content_type`, ... An operation with several values (tags)\nappears in each of their groups; one with none is skipped."
-          },
-          "shape": {
-            "$ref": "#/$defs/Shape",
-            "description": "The type's layout: a map for an object type, a value for a union."
-          }
-        },
-        "required": [
-          "name",
-          "shape"
-        ],
-        "additionalProperties": false,
-        "title": "Emit",
-        "description": "An aggregate type over operations: `shape` is its layout, with keys and\nvalues rendered per operation.\n\n  - name: \"{tags|pascal}Routes\"          # one type per tag\n    group_by: tags\n    where: { method: GET }\n    shape: { \"{path}\": { request: \"{request}\", response: \"{response}\" } }"
-      }
+        "$ref": "#/$defs/Rule"
+      },
+      "default": []
     }
   },
-  "additionalProperties": false,
-  "title": "Config",
-  "description": "opi configuration: the built-in defaults, written out. Every key is\noptional; copy only what you want to change. Lists and maps replace the\ndefault rather than merging, so defining any `emit` drops the `Paths` one\nbelow.\n\nTemplates (`name`s, `shape` keys and values): the operation's fields,\n`.` for its request's / response's.\n  `{type_name}` `{id}` `{method}` `{path}` `{summary}` `{description}`\n  `{deprecated}` `{tags}` `{request.content_type}` `{response.status}`\n  `{response.content_type}`\n  `{method}` -> get, `{Method}` -> Get, `{METHOD}` -> GET.\n  `{Path}` on \"/components/{name}\" -> ComponentsByName.\n  Filters: `{tags|camel}`, `{id|pascal}`, `|lower`, `|upper`.\nSome have several values (`tags`, the content types, `response.status`):\na `shape` key using one is repeated per value, a name uses the first.\n\nSelectors (`filter`, `where`): fields AND, lists OR, `any` ORs selectors,\n`not` negates one.\n  method: [GET, HEAD]    path: \"/shop/**\" (* one segment, ** any)\n  tag: shop    operation_id: \"get*\"    deprecated: false\n  request: { content_type: application/json }    response: { status: 2xx }\n  not: { ... }    any: [{ ... }, { ... }]\n\nShapes mirror the output: a map is an object type, a value a union.\n  shape: { \"{METHOD} {path}\": \"{type_name}\" }    -> type A = { ... }\n  shape: \"{type_name}\"                           -> type A = GetFoo | GetBar\nValues reference the generated types; a variable as the whole value is\nthat part of the operation's type:\n  \"{type_name}\" -> GetFoo    \"{method}\" -> GetFoo['method']\n  \"{request}\" -> GetFoo['request']    \"{request.body}\" -> GetFoo['request']['body']\n  \"{response}\"    \"{response.status}\"    \"{response.body}\"    ...\n  { ref: \"{response}\", where: { content_type: application/json } }\n    -> Extract<GetFoo['response'], { contentType: 'application/json' }>\n  { ref: \"{request}\", pick: [body, query] }\n    -> Pick<GetFoo['request'], 'body' | 'query'>\n  any other template -> a string literal type (\"{METHOD}\" -> 'GET')",
+  "additionalProperties": {
+    "type": "array",
+    "items": {
+      "$ref": "#/$defs/Rule"
+    }
+  },
   "$defs": {
-    "Where": {
+    "Rule": {
+      "description": "Top-level rule representing one transform entry in the YAML/JSON list.",
       "type": "object",
       "properties": {
-        "method": {
+        "each": {
           "anyOf": [
             {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                }
-              ],
-              "title": "List",
-              "description": "A value that can be written as `x` or `[x, y]`."
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "`\"GET\"` / `[\"GET\", \"HEAD\"]`, case-insensitive."
-        },
-        "path": {
-          "anyOf": [
-            {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                }
-              ],
-              "title": "List",
-              "description": "A value that can be written as `x` or `[x, y]`."
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Path globs: `*` matches within one segment, `**` any number of\nsegments. `/shop/**`, `**/items/*`, `/v*/users`."
-        },
-        "tag": {
-          "anyOf": [
-            {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                }
-              ],
-              "title": "List",
-              "description": "A value that can be written as `x` or `[x, y]`."
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Matches if the operation has any of these tags (`*` wildcards)."
-        },
-        "operation_id": {
-          "anyOf": [
-            {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                }
-              ],
-              "title": "List",
-              "description": "A value that can be written as `x` or `[x, y]`."
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "`*` wildcards."
-        },
-        "deprecated": {
-          "anyOf": [
-            {
-              "type": "boolean"
+              "$ref": "#/$defs/Each"
             },
             {
               "type": "null"
             }
           ]
         },
-        "request": {
+        "where": {
           "anyOf": [
             {
               "$ref": "#/$defs/Where"
@@ -273,201 +67,213 @@
             {
               "type": "null"
             }
+          ]
+        },
+        "emit": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Emit"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "Each": {
+      "description": "Handles either a simple string (`\"route\"`) or a nested map (`{ route: \"response\" }`).",
+      "anyOf": [
+        {
+          "$ref": "#/$defs/EachObject"
+        },
+        {
+          "$ref": "#/$defs/EachBare"
+        }
+      ]
+    },
+    "EachObject": {
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "schema"
+          ]
+        },
+        {
+          "type": "object",
+          "properties": {
+            "route": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/EachRoute"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "route"
           ],
-          "description": "Matches if any request variant (one per body content type, plus \"no\nbody\" when it's optional) matches."
+          "additionalProperties": false
+        }
+      ]
+    },
+    "EachRoute": {
+      "description": "Which part of a route to iterate: its request bodies or its responses.",
+      "type": "string",
+      "enum": [
+        "request",
+        "response"
+      ]
+    },
+    "EachBare": {
+      "type": "string",
+      "enum": [
+        "route",
+        "schema"
+      ]
+    },
+    "Where": {
+      "type": "object",
+      "properties": {
+        "deprecated": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "request": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WhereRequest"
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "response": {
           "anyOf": [
             {
-              "$ref": "#/$defs/Where"
+              "$ref": "#/$defs/WhereResponse"
             },
             {
               "type": "null"
             }
+          ]
+        },
+        "method": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Method"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "path": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "WhereRequest": {
+      "type": "object",
+      "properties": {
+        "content_type": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "deprecated": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      }
+    },
+    "WhereResponse": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "description": "A status code; matches only that code, not a `2XX` range.",
+          "type": [
+            "integer",
+            "null"
           ],
-          "description": "Matches if any response (one per status and content type) matches."
+          "format": "uint16",
+          "minimum": 0,
+          "maximum": 65535
         },
         "content_type": {
-          "anyOf": [
-            {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                }
-              ],
-              "title": "List",
-              "description": "A value that can be written as `x` or `[x, y]`."
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Request / response media type, `*` wildcards: `application/json`,\n`\"*json*\"`. `\"*\"` matches any body, so `request: { content_type: \"*\" }`\nselects operations that take one."
+          "type": [
+            "string",
+            "null"
+          ]
         },
-        "status": {
-          "anyOf": [
-            {
-              "anyOf": [
-                {
-                  "anyOf": [
-                    {
-                      "type": "integer"
-                    },
-                    {
-                      "type": "string"
-                    }
-                  ],
-                  "description": "`200`, `2xx` or `default`."
-                },
-                {
-                  "type": "array",
-                  "items": {
-                    "anyOf": [
-                      {
-                        "type": "integer"
-                      },
-                      {
-                        "type": "string"
-                      }
-                    ],
-                    "description": "`200`, `2xx` or `default`."
-                  }
-                }
-              ],
-              "title": "List",
-              "description": "A value that can be written as `x` or `[x, y]`."
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Response status: `200`, `2xx`, `default`."
-        },
-        "name": {
-          "anyOf": [
-            {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                }
-              ],
-              "title": "List",
-              "description": "A value that can be written as `x` or `[x, y]`."
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Schema name (`components.schemas` key), `*` wildcards."
-        },
-        "not": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/Where"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Matches what the nested selector doesn't."
-        },
-        "any": {
-          "anyOf": [
-            {
-              "type": "array",
-              "items": {
-                "$ref": "#/$defs/Where"
-              }
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Matches what any of the nested selectors does."
+        "deprecated": {
+          "type": [
+            "boolean",
+            "null"
+          ]
         }
-      },
-      "additionalProperties": false,
-      "title": "Where"
+      }
     },
-    "Shape": {
+    "Method": {
+      "description": "An HTTP method, case-insensitive: get, put, post, delete, options, head, patch, trace, query, or any other a spec uses.",
+      "type": "string"
+    },
+    "Emit": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "description": "Defaults per item: `{name}` for schemas, `{method}{path}` for routes,\n`{method}{path}Request` / `{method}{path}{status}Response`.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Template"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "fields": {
+          "description": "Omitted: the item as itself. A schema, request or response is its type;\na route is `{ method, path, request, response }`.",
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EmitFields"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "Template": {
+      "description": "Literal text with `{variable}` placeholders; `{{` and `}}` are literal braces.",
+      "type": "string"
+    },
+    "EmitFields": {
       "anyOf": [
         {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "object",
-              "properties": {
-                "ref": {
-                  "type": "string",
-                  "description": "A reference variable: `\"{type_name}\"`, `\"{request}\"`,\n`\"{response.body}\"`, ..."
-                },
-                "where": {
-                  "anyOf": [
-                    {
-                      "$ref": "#/$defs/Where"
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ],
-                  "description": "Keep only the request / response variants matching this (before\ntaking `.body` etc.)."
-                },
-                "pick": {
-                  "anyOf": [
-                    {
-                      "anyOf": [
-                        {
-                          "type": "string"
-                        },
-                        {
-                          "type": "array",
-                          "items": {
-                            "type": "string"
-                          }
-                        }
-                      ],
-                      "title": "List",
-                      "description": "A value that can be written as `x` or `[x, y]`."
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ],
-                  "description": "Keep only these keys of `{type_name}`, `{request}` or `{response}`."
-                }
-              },
-              "required": [
-                "ref"
-              ],
-              "additionalProperties": false,
-              "title": "RefValue",
-              "description": "`{ ref: \"{response}\", where: { content_type: application/json } }` ->\n`Extract<GetFoo['response'], { contentType: 'application/json' }>`;\n`{ ref: \"{request}\", pick: [body, query] }` ->\n`Pick<GetFoo['request'], 'body' | 'query'>`;\n`{ ref: \"{response.body}\", where: { status: 2xx } }` ->\n`Extract<GetFoo['response'], { status: 200 }>['body']`."
-            }
-          ],
-          "title": "Value"
+          "$ref": "#/$defs/Template"
         },
         {
           "type": "object",
           "additionalProperties": {
-            "$ref": "#/$defs/Shape"
+            "$ref": "#/$defs/EmitFields"
           }
         }
-      ],
-      "title": "Shape"
+      ]
     }
   }
 }
