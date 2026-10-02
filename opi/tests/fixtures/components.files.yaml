@@ -1,0 +1,11 @@
+# Every key that isn't `source` / `rules` is a file to write, relative to
+# this config. Each file's rules render on their own, so `routes.ts` has no
+# `Component` declaration to point at and inlines it.
+./schemas.ts:
+  - each: schema
+    emit: { type: "{name}" }
+
+./routes.ts:
+  - each: route
+    where: { deprecated: false }
+    emit: { type: "{method}{path}" }

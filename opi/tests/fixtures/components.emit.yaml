@@ -1,0 +1,24 @@
+# Exercises the `where` and `each` forms the built-in rules don't use.
+rules:
+  # Only GETs, as the route's natural shape.
+  - each: route
+    where: { method: get }
+    emit: { type: "Get{path}" }
+
+  # One path, methods mapped to their response union.
+  - each: route
+    where: { path: "/shop/items" }
+    emit: { type: "ShopItems", fields: { "{method}": "{response}" } }
+
+  # Only the JSON 200s, keyed by route.
+  - each: { route: response }
+    where: { response: { status: 200, content_type: application/json } }
+    emit: { type: "Ok", fields: { "{method} {path}": "{schema}" } }
+
+  # Request bodies by content type.
+  - each: { route: request }
+    emit: { type: "{method}{path}Body", fields: { "{content_type}": "{schema}" } }
+
+  # A schema emitted with `fields` is not a ref target, so refs to it inline.
+  - each: schema
+    emit: { type: "{name}Wrapped", fields: { name: "{name}", value: "{schema}" } }
