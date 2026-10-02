@@ -191,8 +191,8 @@ importers:
         specifier: github:Pingid/lib#build-75
         version: https://codeload.github.com/Pingid/lib/tar.gz/fb10936696e6d973a35802f2f67e20a3e78c5590(@voidzero-dev/vite-plus-core@1.0.0(@types/node@26.6.3)(esbuild@0.28.2)(jiti@2.7.0)(typescript@7.0.2))(supports-color@10.2.2)
       opi:
-        specifier: github:Pingid/opi#build-3
-        version: '@pingid/opi@https://codeload.github.com/Pingid/opi/tar.gz/6a5a6424f02694608837c76039a50109211fc8e5'
+        specifier: github:Pingid/opi#build-8
+        version: '@pingid/opi@https://codeload.github.com/Pingid/opi/tar.gz/0f3b30a4a4fb59b14208de5d0045384426edef1f'
       prettier:
         specifier: ^3.9.9
         version: 3.9.9
@@ -719,8 +719,8 @@ packages:
       hono:
         optional: true
 
-  '@pingid/opi@https://codeload.github.com/Pingid/opi/tar.gz/6a5a6424f02694608837c76039a50109211fc8e5':
-    resolution: {gitHosted: true, integrity: sha512-cqmtBFEmNanJpgOG4Fx3ufAM9r4VxrGtPrkVJyl/XDDCPEK/lISsRy+chiucNh21mp8Uqm9qOI6J2dFIQHuSlg==, tarball: https://codeload.github.com/Pingid/opi/tar.gz/6a5a6424f02694608837c76039a50109211fc8e5}
+  '@pingid/opi@https://codeload.github.com/Pingid/opi/tar.gz/0f3b30a4a4fb59b14208de5d0045384426edef1f':
+    resolution: {gitHosted: true, integrity: sha512-3mJxDcvVF96oRrCHsAuzNPBdBHE/CDv2j8dmgOVam7JPRR5ophfDrZNoEP94CWUGGYVJXLP8tFOHur/nC75kGg==, tarball: https://codeload.github.com/Pingid/opi/tar.gz/0f3b30a4a4fb59b14208de5d0045384426edef1f}
     version: 1.0.0
     hasBin: true
 
@@ -1934,7 +1934,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  '@pingid/opi@https://codeload.github.com/Pingid/opi/tar.gz/6a5a6424f02694608837c76039a50109211fc8e5': {}
+  '@pingid/opi@https://codeload.github.com/Pingid/opi/tar.gz/0f3b30a4a4fb59b14208de5d0045384426edef1f': {}
 
   '@polka/url@1.0.0-next.29': {}
 

@@ -1,0 +1,24 @@
+[package]
+name = "opi"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+serde = { version = "1.0.229", features = ["serde_derive"] }
+serde_json = { version = "1.0.151", features = ["preserve_order"] }
+indexmap = { version = "2", features = ["serde"] }
+anyhow = "1.0.104"
+serde_yaml = "0.9.34"
+
+# TypeScript generation
+oxc_allocator = "0.152.0"
+oxc_ast = "0.152.0"
+oxc_codegen = "0.152.0"
+oxc_span = "0.152.0"
+
+# CLI
+clap = { version = "4.6.7", features = ["derive"] }
+clap_complete = "4.6.11"
+anstyle = "1.0.14"
+schemars = { version = "1.2.2", features = ["indexmap2"] }
+minreq = { version = "3", features = ["https-rustls"] }
