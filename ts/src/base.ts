@@ -9,7 +9,9 @@ export function serializeQuery(query: Record<string, unknown>): string {
   return sp.toString()
 }
 
-export type RouteMap = Record<string, { request: unknown; response: unknown }>
+export type Route = { request: unknown; response: unknown }
+
+export type RouteMap = Record<string, Route>
 
 export interface RouteResponse {
   status: number
@@ -26,7 +28,7 @@ export type RouteInit = {
 }
 
 /** `[init?]` when every field of the request is optional, `[init]` otherwise. */
-export type Args<R> = {} extends R ? [init?: R] : [init: R]
+export type Args<R extends Route> = {} extends R['request'] ? [init?: R['request']] : [init: R['request']]
 
 /** 2xx -> true, everything else -> false. Gives `if (res.ok)` real narrowing. */
 export type Ok<S extends number> = `${S}` extends `2${string}` ? true : false

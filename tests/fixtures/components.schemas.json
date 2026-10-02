@@ -1,5 +1,0 @@
-{
-  "$schema": "../../config.schema.json",
-  "filter": { "tag": "shop" },
-  "schemas": { "keep": { "name": "Mix*" } }
-}

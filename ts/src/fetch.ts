@@ -11,7 +11,7 @@
  * const response = await client('GET /users')
  */
 
-import type { RouteMap, RouteInit, Args, Ok, RouteResponse } from './base.ts'
+import type { RouteMap, RouteInit, Args, Ok, RouteResponse, Route } from './base.ts'
 import { serializeQuery } from './base.ts'
 
 // ------------------------------------------------------------------
@@ -24,10 +24,7 @@ export interface Options {
   fetch?: typeof globalThis.fetch
 }
 
-export type Client<T extends RouteMap> = <K extends keyof T>(
-  route: K,
-  ...args: Args<T[K]['request']>
-) => Promise<ResponseFor<T[K]['response']>>
+export type Client<T extends RouteMap> = <K extends keyof T>(route: K, ...args: Args<T[K]>) => Promise<Responds<T[K]>>
 
 export function client<T extends RouteMap>(options: Options = {}): Client<T> {
   const { baseUrl = '', fetch: f = globalThis.fetch, headers: baseHeaders } = options
@@ -91,10 +88,12 @@ export interface UnknownResponse<S extends number> extends Response {
   readonly ok: Ok<S>
 }
 
-export type ResponseFor<R> = R extends RouteResponse
+export type Responses<R> = R extends RouteResponse
   ? [R['contentType']] extends [null]
     ? UnknownResponse<R['status']>
     : R['contentType'] extends `${string}json`
       ? JsonResponse<R['status'], R['body']>
       : TextResponse<R['status']>
   : never
+
+export type Responds<R extends Route> = Responses<R['response']>
