@@ -12,58 +12,50 @@
  */
 
 import type { RouteMap, RouteInit, Args, Ok, RouteResponse, Route } from './base.ts'
-import { serializeQuery } from './base.ts'
+
+import * as Req from './req.ts'
 
 // ------------------------------------------------------------------
 // Typed fetch adapter
 // ------------------------------------------------------------------
-
-export interface Options {
+export interface FetchOptions<R = Response> extends Req.Options {
   baseUrl?: string
   headers?: HeadersInit
   fetch?: typeof globalThis.fetch
+  res?: (res: Response, route: string) => R | Promise<R>
 }
 
-export type Client<T extends RouteMap> = <K extends keyof T>(route: K, ...args: Args<T[K]>) => Promise<Responds<T[K]>>
+export type Fetcher<T extends RouteMap> = <K extends keyof T>(
+  route: K,
+  ...args: Args<T[K]['request']>
+) => Promise<Responds<T[K]>>
 
-export function client<T extends RouteMap>(options: Options = {}): Client<T> {
-  const { baseUrl = '', fetch: f = globalThis.fetch, headers: baseHeaders } = options
+export const fetcher = <T extends RouteMap>(options: FetchOptions<Response> = {}): Fetcher<T> => fetcherFor(options)
 
-  const fetchers = (route: string, init: RouteInit = {}) => {
-    const sp = route.indexOf(' ')
-    const method = route.slice(0, sp)
-    let path = route.slice(sp + 1)
-
-    if (init.params)
-      for (const k in init.params) path = path.replace(`{${k}}`, encodeURIComponent(String(init.params[k])))
-
-    const qs = init.query ? serializeQuery(init.query) : ''
-    const headers = new Headers(baseHeaders)
-    if (init.headers)
-      for (const k in init.headers) if (init.headers[k] !== undefined) headers.set(k, String(init.headers[k]))
-
-    let body: BodyInit | undefined
-    if (init.body !== undefined) {
-      const ct: string | undefined = init.contentType
-      if (!ct || ct === 'application/json') {
-        headers.set('content-type', 'application/json')
-        body = JSON.stringify(init.body)
-      } else if (ct === 'application/x-www-form-urlencoded') {
-        headers.set('content-type', ct)
-        body = new URLSearchParams(init.body as Record<string, string>)
-      } else if (ct === 'multipart/form-data') {
-        // Let the runtime set the boundary.
-        body = init.body as BodyInit
-      } else {
-        headers.set('content-type', ct)
-        body = init.body as BodyInit
-      }
-    }
-
-    return f(`${baseUrl}${path}${qs && `?${qs}`}`, { method, headers, body })
-  }
-  return fetchers as unknown as Client<T>
+// ------------------------------------------------------------------
+// Typed fetch adapter
+// ------------------------------------------------------------------
+export interface FetchBodyOptions<T extends RouteMap = RouteMap> extends FetchOptions {
+  res?: <K extends keyof T>(res: Response, route: K) => Promise<Body<T[K]['response']>>
 }
+
+export type FetchBody<T extends RouteMap> = <K extends keyof T>(
+  route: K,
+  ...args: Args<T[K]['request']>
+) => Promise<Body<T[K]['response']>>
+
+export type Body<R> = Extract<R, { status: 200 | 201 | 202 | 204; body?: any }>['body']
+
+export const bodyFetcher = <T extends RouteMap>(options: FetchBodyOptions<T> = {}): FetchBody<T> =>
+  fetcherFor({
+    ...options,
+    res: (r: Response) => {
+      if (!r.ok) return Promise.reject(new Error(`Failed with status ${r.status}: ${r.statusText}`))
+      if (r.headers.get('content-type')?.startsWith('application/json')) return r.json()
+      if (r.headers.get('content-type')?.startsWith('text')) return r.text()
+      return r.body
+    },
+  })
 
 // ------------------------------------------------------------------
 // Adapter Types
@@ -97,3 +89,16 @@ export type Responses<R> = R extends RouteResponse
   : never
 
 export type Responds<R extends Route> = Responses<R['response']>
+
+// ------------------------------------------------------------------
+// helper
+// ------------------------------------------------------------------
+
+const fetcherFor = (options: FetchOptions<any> = {}): Fetcher<any> => {
+  const { fetch: f = globalThis.fetch } = options
+  const res = options.res ?? ((r) => r)
+  const build = Req.builder(options)
+  const fetchers = (route: string, init: RouteInit = {}) =>
+    f(build.url(route, init as any), build.build(route, init as any)).then((r) => res(r, route))
+  return fetchers as unknown as Fetcher<any>
+}

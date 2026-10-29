@@ -5,7 +5,7 @@ import { host, targets } from './ts/cli/targets.ts'
 const crossed = targets.filter((target) => target !== host())
 const builds = [
   ...crossed.map((target) => ({ target, build: `cargo zigbuild --target ${target}`, output: `./target/${target}` })),
-  { target: host(), build: `cargo build --target ${host()}`, output: './target' },
+  { target: host(), build: `cargo build --target ${host()}`, output: `./target/${host()}` },
 ]
 
 export default defineConfig({
@@ -29,7 +29,14 @@ export default defineConfig({
           [`compile:${build.target}`]: {
             command: `${build.build} --release`,
             cache: {
-              input: ['./opi/src/**/*.rs', './opi/Cargo.toml', 'Cargo.lock', './config.default.yaml'],
+              input: [
+                './opi/src/**/*.rs',
+                './opi/Cargo.toml',
+                'Cargo.lock',
+                './config.default.yaml',
+                './target/CACHEDIR.TAG',
+                `${build.output}/release/opi`,
+              ],
               output: [`${build.output}/release/opi`],
             },
           },

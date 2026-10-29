@@ -1,11 +1,12 @@
 import type { RouteMap, RouteInit, Args, RouteResponse } from './base.ts'
-import { serializeQuery } from './base.ts'
+
+import * as Req from './req.ts'
 
 // ------------------------------------------------------------------
 // Typed XHR adapter
 // ------------------------------------------------------------------
 
-export interface Options {
+export interface Options extends Req.Options {
   baseUrl?: string
   headers?: Record<string, string>
   /** Called after `open`, before any `send`. */
@@ -14,46 +15,24 @@ export interface Options {
 
 export type Client<T extends RouteMap> = <K extends keyof T & string>(
   route: K,
-  ...args: Args<Omit<T[K]['request'], 'body'>>
+  ...args: Args<OmitT<T[K]['request'], 'body'>>
 ) => TypedXMLHttpRequest<T[K]['request'], T[K]['response']>
 
+type OmitT<T, K> = K extends keyof T ? Omit<T, K> : T
+
 export function client<T extends RouteMap>(options: Options = {}): Client<T> {
-  const { baseUrl = '', headers: baseHeaders, configure } = options
+  const { configure } = options
+  const b = Req.builder(options)
 
   const f = (route: string, init: RouteInit = {}) => {
-    const sp = route.indexOf(' ')
-    const method = route.slice(0, sp)
-    let path = route.slice(sp + 1)
-
-    if (init.params) {
-      for (const k in init.params) {
-        path = path.replace(`{${k}}`, encodeURIComponent(String(init.params[k])))
-      }
-    }
-
-    const qs = init.query ? serializeQuery(init.query) : ''
+    const rq = b.build(route, init)
     const xhr = new XMLHttpRequest()
-    xhr.open(method, `${baseUrl}${path}${qs && `?${qs}`}`)
+    xhr.open(rq.method, rq.url)
 
-    if (baseHeaders) for (const k in baseHeaders) xhr.setRequestHeader(k, baseHeaders[k]!)
-    if (init.headers) {
-      for (const k in init.headers) {
-        if (init.headers[k] !== undefined) xhr.setRequestHeader(k, String(init.headers[k]))
-      }
-    }
-
-    const ct: string | undefined = init.contentType
-    if (ct && ct !== 'multipart/form-data') xhr.setRequestHeader('content-type', ct)
+    for (const [k, v] of rq.headers.entries()) xhr.setRequestHeader(k, v)
 
     const send = xhr.send.bind(xhr)
-    ;(xhr as any).send = (body?: unknown) => {
-      if (body === undefined) return send()
-      if (!ct || ct === 'application/json') return send(JSON.stringify(body))
-      if (ct === 'application/x-www-form-urlencoded') {
-        return send(new URLSearchParams(body as Record<string, string>))
-      }
-      return send(body as XMLHttpRequestBodyInit)
-    }
+    ;(xhr as any).send = (body?: unknown) => send(b.body(body) as XMLHttpRequestBodyInit)
 
     ;(xhr as any).result = () =>
       new Promise((resolve, reject) => {
@@ -86,7 +65,7 @@ export interface TypedXMLHttpRequest<Req, Res> extends Omit<XMLHttpRequest, 'sen
   readonly status: Extract<Res, RouteResponse>['status'] | 0
   send(body?: BodyOf<Req>): void
   /** The response union as data discriminated by `status`. */
-  result(): Promise<Res>
+  await(): Promise<Res>
 }
 
 export type RequestOf<T extends RouteMap, K extends keyof T> = T[K]['request']

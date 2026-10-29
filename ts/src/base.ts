@@ -2,9 +2,10 @@ export function serializeQuery(query: Record<string, unknown>): string {
   const sp = new URLSearchParams()
   for (const k in query) {
     const v = query[k]
-    if (v === undefined || v === null) continue
+    if (v === undefined) continue
     if (Array.isArray(v)) for (const item of v) sp.append(k, String(item))
-    else sp.set(k, String(v))
+    else if (typeof v === 'string') sp.set(k, v)
+    else sp.set(k, JSON.stringify(v))
   }
   return sp.toString()
 }
@@ -28,7 +29,7 @@ export type RouteInit = {
 }
 
 /** `[init?]` when every field of the request is optional, `[init]` otherwise. */
-export type Args<R extends Route> = {} extends R['request'] ? [init?: R['request']] : [init: R['request']]
+export type Args<R> = {} extends R ? [init?: R] : [init: R]
 
 /** 2xx -> true, everything else -> false. Gives `if (res.ok)` real narrowing. */
 export type Ok<S extends number> = `${S}` extends `2${string}` ? true : false
